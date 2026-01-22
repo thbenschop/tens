@@ -12,18 +12,18 @@ import (
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
 		env := os.Getenv("ENV")
-		
+
 		// Allow all origins in development
 		if env == "development" || env == "" {
 			return true
 		}
-		
+
 		// In production, check against allowed origins
 		allowedOrigins := os.Getenv("ALLOWED_ORIGINS")
 		if allowedOrigins == "" {
 			return false
 		}
-		
+
 		origin := r.Header.Get("Origin")
 		origins := strings.Split(allowedOrigins, ",")
 		for _, allowed := range origins {
@@ -31,7 +31,7 @@ var upgrader = websocket.Upgrader{
 				return true
 			}
 		}
-		
+
 		return false
 	},
 }

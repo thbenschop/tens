@@ -31,6 +31,8 @@ type RoomHandler struct {
 	roomConnections map[string]map[*websocket.Conn]bool
 	// Map of connection to player info
 	connInfo map[*websocket.Conn]*ConnectionInfo
+	// Map of room code to game instance
+	games map[string]*models.Game
 }
 
 // ConnectionInfo stores player info for a connection
@@ -45,6 +47,7 @@ func NewRoomHandler() *RoomHandler {
 		roomService:     services.NewRoomService(),
 		roomConnections: make(map[string]map[*websocket.Conn]bool),
 		connInfo:        make(map[*websocket.Conn]*ConnectionInfo),
+		games:           make(map[string]*models.Game),
 	}
 }
 
@@ -295,10 +298,23 @@ func (h *RoomHandler) handleStartGame(conn *websocket.Conn, msg map[string]inter
 		return
 	}
 
-	// Broadcast game started to all players
+	// Convert room players to slice for game service
+	players := make([]*models.Player, 0, len(room.Players))
+	for _, player := range room.Players {
+		players = append(players, player)
+	}
+
+	// Start the game - this creates deck, shuffles, and deals cards
+	game := services.StartGame(players)
+	game.RoomCode = roomCode
+
+	// Store game instance
+	h.games[roomCode] = game
+
+	// Broadcast game started to all players with game state
 	broadcast := map[string]interface{}{
 		"type": TypeGameStarted,
-		"room": h.serializeRoom(room),
+		"game": h.serializeGame(game),
 	}
 	h.broadcastToRoom(roomCode, broadcast, nil)
 }
@@ -383,5 +399,71 @@ func (h *RoomHandler) serializeRoom(room *models.Room) map[string]interface{} {
 		"hostId":      room.HostID,
 		"players":     players,
 		"playerCount": room.GetPlayerCount(),
+	}
+}
+
+func (h *RoomHandler) serializeGame(game *models.Game) map[string]interface{} {
+	if game == nil {
+		return nil
+	}
+
+	// Serialize players with their cards
+	players := make([]map[string]interface{}, 0, len(game.Players))
+	for _, player := range game.Players {
+		// Serialize hand cards
+		hand := make([]map[string]interface{}, 0, len(player.Hand))
+		for _, card := range player.Hand {
+			hand = append(hand, map[string]interface{}{
+				"id":    card.ID,
+				"suit":  card.Suit,
+				"value": card.Value,
+			})
+		}
+
+		// Serialize table cards up
+		tableUp := make([]map[string]interface{}, 0, len(player.TableCardsUp))
+		for _, card := range player.TableCardsUp {
+			tableUp = append(tableUp, map[string]interface{}{
+				"id":    card.ID,
+				"suit":  card.Suit,
+				"value": card.Value,
+			})
+		}
+
+		// Table cards down - hide value/suit
+		tableDown := make([]map[string]interface{}, 0, len(player.TableCardsDown))
+		for _, card := range player.TableCardsDown {
+			tableDown = append(tableDown, map[string]interface{}{
+				"id":     card.ID,
+				"hidden": true,
+			})
+		}
+
+		players = append(players, map[string]interface{}{
+			"id":             player.ID,
+			"name":           player.Name,
+			"hand":           hand,
+			"tableCardsUp":   tableUp,
+			"tableCardsDown": tableDown,
+		})
+	}
+
+	// Serialize center pile
+	centerPile := make([]map[string]interface{}, 0, len(game.CenterPile))
+	for _, card := range game.CenterPile {
+		centerPile = append(centerPile, map[string]interface{}{
+			"id":    card.ID,
+			"suit":  card.Suit,
+			"value": card.Value,
+		})
+	}
+
+	return map[string]interface{}{
+		"players":            players,
+		"centerPile":         centerPile,
+		"discardCount":       len(game.DiscardPile),
+		"currentPlayerIndex": game.CurrentPlayerIndex,
+		"dealerIndex":        game.DealerIndex,
+		"round":              game.Round,
 	}
 }

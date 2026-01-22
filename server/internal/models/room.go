@@ -9,20 +9,23 @@ import (
 
 // Player represents a player in a room
 type Player struct {
-	ID         string                `json:"id"`
-	Name       string                `json:"name"`
-	Connection *websocket.Conn       `json:"-"`
-	JoinedAt   time.Time             `json:"joinedAt"`
+	ID             string          `json:"id"`
+	Name           string          `json:"name"`
+	Connection     *websocket.Conn `json:"-"`
+	JoinedAt       time.Time       `json:"joinedAt"`
+	Hand           []*Card         `json:"hand"`
+	TableCardsUp   []*Card         `json:"tableCardsUp"`
+	TableCardsDown []*Card         `json:"tableCardsDown"`
 }
 
 // Room represents a game room
 type Room struct {
 	ID        string
-	Code      string                        `json:"code"`
-	HostID    string                        `json:"hostId"`
-	Players   map[string]*Player            `json:"players"`
+	Code      string             `json:"code"`
+	HostID    string             `json:"hostId"`
+	Players   map[string]*Player `json:"players"`
 	Clients   map[*websocket.Conn]bool
-	CreatedAt time.Time                     `json:"createdAt"`
+	CreatedAt time.Time `json:"createdAt"`
 	mu        sync.RWMutex
 }
 
