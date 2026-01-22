@@ -3,16 +3,27 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 
+	"github.com/joho/godotenv"
 	"github.com/thben/clearthedeck/internal/handlers"
 )
 
 func main() {
-	// Create WebSocket handler
-	wsHandler := handlers.NewWebSocketHandler()
+	// Load .env file if it exists (ignore error in production)
+	godotenv.Load()
+
+	// Get port from environment or use default
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	// Create room handler (replaces old WebSocket handler)
+	roomHandler := handlers.NewRoomHandler()
 
 	// Set up routes
-	http.HandleFunc("/ws", wsHandler.HandleWebSocket)
+	http.HandleFunc("/ws", roomHandler.HandleWebSocket)
 
 	// Health check endpoint
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -21,9 +32,9 @@ func main() {
 	})
 
 	// Start server
-	port := ":8080"
-	log.Printf("Server starting on port %s", port)
-	if err := http.ListenAndServe(port, nil); err != nil {
+	addr := ":" + port
+	log.Printf("Server starting on port %s", addr)
+	if err := http.ListenAndServe(addr, nil); err != nil {
 		log.Fatal("Server failed to start:", err)
 	}
 }
