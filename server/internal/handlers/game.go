@@ -123,4 +123,3 @@ func (h *RoomHandler) broadcastGameState(roomCode string, game *models.Game) {
 
 	h.broadcastToRoom(roomCode, response, nil)
 }
-

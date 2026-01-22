@@ -64,11 +64,11 @@ func TestAllSameValue(t *testing.T) {
 
 func TestIsValidPlay(t *testing.T) {
 	tests := []struct {
-		name          string
-		cardsToPlay   []*models.Card
-		centerPile    []*models.Card
-		afterPickup   bool
-		expectedValid bool
+		name           string
+		cardsToPlay    []*models.Card
+		centerPile     []*models.Card
+		afterPickup    bool
+		expectedValid  bool
 		expectedReason string
 	}{
 		{
@@ -76,9 +76,9 @@ func TestIsValidPlay(t *testing.T) {
 			cardsToPlay: []*models.Card{
 				{ID: "1", Suit: "Hearts", Value: "K"},
 			},
-			centerPile:    []*models.Card{},
-			afterPickup:   false,
-			expectedValid: true,
+			centerPile:     []*models.Card{},
+			afterPickup:    false,
+			expectedValid:  true,
 			expectedReason: "",
 		},
 		{
@@ -89,8 +89,8 @@ func TestIsValidPlay(t *testing.T) {
 			centerPile: []*models.Card{
 				{ID: "2", Suit: "Diamonds", Value: "5"},
 			},
-			afterPickup:   false,
-			expectedValid: true,
+			afterPickup:    false,
+			expectedValid:  true,
 			expectedReason: "",
 		},
 		{
@@ -101,8 +101,8 @@ func TestIsValidPlay(t *testing.T) {
 			centerPile: []*models.Card{
 				{ID: "2", Suit: "Diamonds", Value: "7"},
 			},
-			afterPickup:   false,
-			expectedValid: true,
+			afterPickup:    false,
+			expectedValid:  true,
 			expectedReason: "",
 		},
 		{
@@ -113,8 +113,8 @@ func TestIsValidPlay(t *testing.T) {
 			centerPile: []*models.Card{
 				{ID: "2", Suit: "Diamonds", Value: "5"},
 			},
-			afterPickup:   false,
-			expectedValid: false,
+			afterPickup:    false,
+			expectedValid:  false,
 			expectedReason: "card value too high",
 		},
 		{
@@ -125,8 +125,8 @@ func TestIsValidPlay(t *testing.T) {
 			centerPile: []*models.Card{
 				{ID: "2", Suit: "Diamonds", Value: "3"},
 			},
-			afterPickup:   false,
-			expectedValid: true,
+			afterPickup:    false,
+			expectedValid:  true,
 			expectedReason: "",
 		},
 		{
@@ -137,8 +137,8 @@ func TestIsValidPlay(t *testing.T) {
 			centerPile: []*models.Card{
 				{ID: "2", Suit: "Diamonds", Value: "K"},
 			},
-			afterPickup:   false,
-			expectedValid: true,
+			afterPickup:    false,
+			expectedValid:  true,
 			expectedReason: "",
 		},
 		{
@@ -149,8 +149,8 @@ func TestIsValidPlay(t *testing.T) {
 			centerPile: []*models.Card{
 				{ID: "2", Suit: "Diamonds", Value: "2"},
 			},
-			afterPickup:   true,
-			expectedValid: true,
+			afterPickup:    true,
+			expectedValid:  true,
 			expectedReason: "",
 		},
 		{
@@ -161,8 +161,8 @@ func TestIsValidPlay(t *testing.T) {
 			centerPile: []*models.Card{
 				{ID: "2", Suit: "Diamonds", Value: "2"},
 			},
-			afterPickup:   false,
-			expectedValid: true,
+			afterPickup:    false,
+			expectedValid:  true,
 			expectedReason: "",
 		},
 		{
@@ -173,8 +173,8 @@ func TestIsValidPlay(t *testing.T) {
 			centerPile: []*models.Card{
 				{ID: "2", Suit: "Diamonds", Value: "K"},
 			},
-			afterPickup:   false,
-			expectedValid: true,
+			afterPickup:    false,
+			expectedValid:  true,
 			expectedReason: "",
 		},
 		{
@@ -185,8 +185,8 @@ func TestIsValidPlay(t *testing.T) {
 			centerPile: []*models.Card{
 				{ID: "2", Suit: "Diamonds", Value: "J"},
 			},
-			afterPickup:   false,
-			expectedValid: false,
+			afterPickup:    false,
+			expectedValid:  false,
 			expectedReason: "card value too high",
 		},
 	}
