@@ -12,16 +12,19 @@ import (
 
 // Message types
 const (
-	TypeCreateRoom   = "CREATE_ROOM"
-	TypeRoomCreated  = "ROOM_CREATED"
-	TypeJoinRoom     = "JOIN_ROOM"
-	TypeRoomJoined   = "ROOM_JOINED"
-	TypeLeaveRoom    = "LEAVE_ROOM"
-	TypePlayerJoined = "PLAYER_JOINED"
-	TypePlayerLeft   = "PLAYER_LEFT"
-	TypeStartGame    = "START_GAME"
-	TypeGameStarted  = "GAME_STARTED"
-	TypeError        = "ERROR"
+	TypeCreateRoom    = "CREATE_ROOM"
+	TypeRoomCreated   = "ROOM_CREATED"
+	TypeJoinRoom      = "JOIN_ROOM"
+	TypeRoomJoined    = "ROOM_JOINED"
+	TypeLeaveRoom     = "LEAVE_ROOM"
+	TypePlayerJoined  = "PLAYER_JOINED"
+	TypePlayerLeft    = "PLAYER_LEFT"
+	TypeStartGame     = "START_GAME"
+	TypeGameStarted   = "GAME_STARTED"
+	TypePlayCards     = "PLAY_CARDS"
+	TypeFlipFaceDown  = "FLIP_FACE_DOWN"
+	TypeGameUpdate    = "GAME_UPDATE"
+	TypeError         = "ERROR"
 )
 
 // RoomHandler handles room-related WebSocket messages
@@ -111,6 +114,10 @@ func (h *RoomHandler) handleMessage(conn *websocket.Conn, msgType string, msg ma
 		h.handleLeaveRoom(conn, msg)
 	case TypeStartGame:
 		h.handleStartGame(conn, msg)
+	case TypePlayCards:
+		h.handlePlayCards(conn, msg)
+	case TypeFlipFaceDown:
+		h.handleFlipFaceDown(conn, msg)
 	default:
 		h.sendError(conn, "Unknown message type")
 	}
