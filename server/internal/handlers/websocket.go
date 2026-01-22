@@ -1,0 +1,65 @@
+package handlers
+
+import (
+	"log"
+	"net/http"
+
+	"github.com/gorilla/websocket"
+)
+
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool {
+		// Allow all origins for development
+		return true
+	},
+}
+
+// WebSocketHandler handles WebSocket connections
+type WebSocketHandler struct {
+	connections map[*websocket.Conn]bool
+}
+
+// NewWebSocketHandler creates a new WebSocket handler
+func NewWebSocketHandler() *WebSocketHandler {
+	return &WebSocketHandler{
+		connections: make(map[*websocket.Conn]bool),
+	}
+}
+
+// HandleWebSocket upgrades HTTP connection to WebSocket
+func (h *WebSocketHandler) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
+	// Upgrade connection to WebSocket
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Printf("Failed to upgrade connection: %v", err)
+		return
+	}
+
+	// Add connection to active connections
+	h.connections[conn] = true
+
+	// Send welcome message
+	err = conn.WriteMessage(websocket.TextMessage, []byte(`{"type":"connected","message":"Successfully connected to server"}`))
+	if err != nil {
+		log.Printf("Failed to send welcome message: %v", err)
+		conn.Close()
+		delete(h.connections, conn)
+		return
+	}
+
+	// Handle disconnection
+	defer func() {
+		conn.Close()
+		delete(h.connections, conn)
+		log.Printf("Client disconnected")
+	}()
+
+	// Keep connection alive and listen for messages
+	for {
+		_, _, err := conn.ReadMessage()
+		if err != nil {
+			log.Printf("Read error: %v", err)
+			break
+		}
+	}
+}

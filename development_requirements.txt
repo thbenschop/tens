@@ -1,0 +1,410 @@
+Your goal is to implement the game described in `GAME_RULES.md`. Follow the specifications closely and ensure that all features are included as per the document.
+
+# Development Requirements for Game Implementation
+This should be implemented as a browser-based game. To make the game multiplayer, use WebSockets for real-time communication between players. One player will host the game, while sharing a room code with others to join.
+The game should be responsive and work well on both desktop and mobile browsers.
+
+# Technology Stack
+- Use HTML5, CSS3, and JavaScript (ES6+) for the front-end development.
+- Use a front-end framework like React or Vue.js to manage the UI components.
+- Implement WebSocket communication using libraries like Socket.IO or native WebSocket API.
+- Ensure the game state is synchronized across all players in real-time.
+- Use Golang for the back-end server to handle room codes and player connections.
+- Implement RESTful APIs for any additional functionalities like player statistics or game history.
+
+# Project Structure
+
+## Frontend Structure
+```
+/client
+  /src
+    /components
+      /game
+        - GameBoard.js          (Main game container)
+        - PlayerHand.js         (Player's hand cards)
+        - TableCards.js         (Face-up and face-down cards on table)
+        - CenterPile.js         (Cards played in center)
+        - PlayerInfo.js         (Player name, card count, score)
+      /lobby
+        - CreateRoom.js         (Host creates game room)
+        - JoinRoom.js           (Join with room code)
+        - Lobby.js              (Pre-game lobby)
+      /ui
+        - Card.js               (Individual card component)
+        - CardSelector.js       (Multi-select for playing cards)
+        - ScoreBoard.js         (End of round scoring)
+        - GameHistory.js        (Past rounds)
+    /hooks
+      - useWebSocket.js         (WebSocket connection management)
+      - useGameState.js         (Game state management)
+    /utils
+      - cardUtils.js            (Card sorting, validation)
+      - gameLogic.js            (Game rules implementation)
+      - constants.js            (Card values, game settings)
+    /styles
+      - global.css
+      - game.css
+      - cards.css
+    - App.js
+    - index.js
+  /public
+    /assets
+      /cards                    (Card images or sprites)
+      /sounds                   (Optional sound effects)
+```
+
+## Backend Structure
+```
+/server
+  /cmd
+    - main.go                   (Entry point)
+  /internal
+    /models
+      - game.go                 (Game state model)
+      - player.go               (Player model)
+      - room.go                 (Room model)
+      - card.go                 (Card model)
+    /handlers
+      - websocket.go            (WebSocket handlers)
+      - room.go                 (Room management)
+      - game.go                 (Game logic)
+    /services
+      - gameService.go          (Game rules enforcement)
+      - roomService.go          (Room creation/joining)
+    /utils
+      - deck.go                 (Deck shuffling, dealing)
+      - validator.go            (Move validation)
+  go.mod
+  go.sum
+```
+
+# Core Game Features to Implement
+
+## 1. Game Setup
+- Support 3-10 players (adjust deck count: 3-5 players=2 decks, 6-7=3 decks, 8-10=4 decks)
+- Dealer selection (rotates each round)
+- Card dealing sequence:
+  * 4 cards face-down per player
+  * 4 cards face-up on top of each face-down card
+  * 12 cards to hand
+- Discard pile initialization with remaining cards
+
+## 2. Game State Management
+- Track all player hands (hidden from other players)
+- Track face-up cards for each player (visible to all)
+- Track face-down cards for each player (hidden until played)
+- Track center pile (visible to all, must show card order)
+- Track discard pile (card count visible)
+- Track current player turn
+- Track last played card value
+- Track round number and cumulative scores
+
+## 3. Card Play Logic
+- Allow playing multiple cards of same value from hand and face-up cards
+- Enforce "equal or lesser value" rule (or pick up pile)
+- Face-down card reveal mechanism (must play once flipped)
+- Set detection (4+ cards of same value → Clear the Deck)
+- Wild card (10) handling - can always clear the deck
+- Additional turn after clearing deck or picking up pile
+- Prevent playing face-down cards while covered
+
+## 4. Game Rules Enforcement
+- Validate card plays against previous card value
+- Auto-pickup center pile when playing higher value
+- Auto-clear deck when set is formed
+- Track card visibility rules
+- Enforce turn order (clockwise from dealer's left)
+- Win condition detection (player plays all 20 cards)
+
+## 5. Scoring System
+- Calculate points for cards in hand at round end:
+  * Number cards = face value
+  * Ace = 1 point
+  * Jack = 11 points
+  * Queen = 12 points
+  * King = 13 points
+  * Ten = 25 points (20 in hand, but wild during play)
+- Include face-up and face-down table cards in scoring
+- Winner gets 0 points for the round
+- Track cumulative scores across rounds
+- Display lowest score as overall winner
+
+## 6. Multiplayer Features
+- Room creation with unique 6-character code
+- Room joining with code validation
+- Player nickname selection
+- Host controls (start game, kick players)
+- Show connected players in lobby
+- Handle player disconnection gracefully
+- Reconnection support (rejoin with same room code)
+- Spectator mode for disconnected players
+
+## 7. UI/UX Requirements
+- Clear visual distinction between:
+  * Face-up cards (always visible)
+  * Face-down cards (show card back until played)
+  * Hand cards (only visible to owner)
+  * Center pile (show all cards and order)
+- Card selection interface (tap/click to select multiple)
+- Visual feedback for valid/invalid moves
+- Animations:
+  * Card dealing
+  * Card playing to center
+  * Clearing the deck
+  * Picking up pile
+- Turn indicator (highlight current player)
+- Card count display for each player
+- Action log/history feed
+- Responsive design for mobile and desktop
+- Touch-friendly card selection
+
+## 8. Real-Time Synchronization
+- Broadcast all game actions to all players immediately
+- Optimistic updates with server validation
+- Handle network latency gracefully
+- Conflict resolution (if two players act simultaneously)
+- Game state recovery on reconnection
+
+## 9. Additional Features
+- Game chat (optional but recommended)
+- Timer per turn (optional, configurable)
+- Game pause functionality
+- Rematch option after game ends
+- Game rules reference (accessible in-game)
+- Sound effects toggle
+- Dark/light mode toggle
+
+# Implementation Phases
+
+## Phase 1: Foundation (Week 1-2)
+- [ ] Set up project structure (client and server)
+- [ ] Implement basic Go WebSocket server
+- [ ] Create room management (create/join/leave)
+- [ ] Build lobby UI
+- [ ] Establish WebSocket connection from client
+- [ ] Implement basic game state model
+
+## Phase 2: Core Game Logic (Week 3-4)
+- [ ] Implement deck creation and shuffling
+- [ ] Implement card dealing logic
+- [ ] Build card play validation
+- [ ] Implement "Clear the Deck" detection
+- [ ] Implement pile pickup logic
+- [ ] Build turn management system
+- [ ] Implement win condition detection
+
+## Phase 3: UI Components (Week 5-6)
+- [ ] Create Card component with animations
+- [ ] Build PlayerHand component
+- [ ] Build TableCards component (face-up/down)
+- [ ] Build CenterPile component
+- [ ] Implement card selection mechanism
+- [ ] Create PlayerInfo displays
+- [ ] Build GameBoard layout
+
+## Phase 4: Game Flow (Week 7)
+- [ ] Implement full game loop
+- [ ] Add scoring calculation
+- [ ] Build ScoreBoard UI
+- [ ] Implement round transitions
+- [ ] Add dealer rotation
+- [ ] Test full multiplayer game flow
+
+## Phase 5: Polish & Testing (Week 8-9)
+- [ ] Add animations and transitions
+- [ ] Implement sound effects
+- [ ] Add error handling and user feedback
+- [ ] Handle edge cases (disconnections, etc.)
+- [ ] Cross-browser testing
+- [ ] Mobile responsiveness testing
+- [ ] Performance optimization
+
+## Phase 6: Advanced Features (Week 10+)
+- [ ] Game chat
+- [ ] Game history/statistics
+- [ ] Reconnection handling
+- [ ] Spectator mode
+- [ ] Optional timer
+- [ ] Settings panel
+
+# Technical Considerations
+
+## WebSocket Message Types
+```javascript
+// Client → Server
+{
+  type: 'CREATE_ROOM',
+  payload: { playerName: string, gameSettings: object }
+}
+{
+  type: 'JOIN_ROOM',
+  payload: { roomCode: string, playerName: string }
+}
+{
+  type: 'START_GAME',
+  payload: { roomCode: string }
+}
+{
+  type: 'PLAY_CARDS',
+  payload: { roomCode: string, cards: array, source: string }
+}
+{
+  type: 'FLIP_FACE_DOWN',
+  payload: { roomCode: string, position: number }
+}
+
+// Server → Client
+{
+  type: 'ROOM_CREATED',
+  payload: { roomCode: string, playerId: string }
+}
+{
+  type: 'PLAYER_JOINED',
+  payload: { players: array }
+}
+{
+  type: 'GAME_STARTED',
+  payload: { gameState: object }
+}
+{
+  type: 'GAME_STATE_UPDATE',
+  payload: { gameState: object }
+}
+{
+  type: 'TURN_CHANGE',
+  payload: { currentPlayerId: string }
+}
+{
+  type: 'ROUND_END',
+  payload: { scores: object, winner: string }
+}
+{
+  type: 'ERROR',
+  payload: { message: string }
+}
+```
+
+## Game State Model
+```javascript
+{
+  roomCode: string,
+  players: [
+    {
+      id: string,
+      name: string,
+      hand: array,           // Hidden from other players
+      tableCardsUp: array,   // Visible to all (4 cards)
+      tableCardsDown: array, // Hidden until played (4 cards)
+      score: number,
+      totalScore: number,
+      isConnected: boolean
+    }
+  ],
+  centerPile: array,        // All cards played in center
+  discardPile: array,       // Cleared cards
+  currentPlayerIndex: number,
+  dealerIndex: number,
+  lastPlayedValue: number,  // For validation
+  roundNumber: number,
+  gamePhase: string,        // 'lobby', 'playing', 'roundEnd', 'gameEnd'
+  settings: {
+    roundsToPlay: number,
+    targetScore: number,
+    turnTimer: number
+  }
+}
+```
+
+## Card Validation Rules
+```javascript
+function isValidPlay(cards, lastValue, isFirstPlay) {
+  // All cards must have same value
+  if (!allSameValue(cards)) return false;
+  
+  // Tens (wild) can always be played
+  if (cards[0].value === 10) return true;
+  
+  // First play of turn can be any value
+  if (isFirstPlay) return true;
+  
+  // Must be equal or less than last played
+  return cards[0].value <= lastValue;
+}
+
+function isSet(allCardsInCenter) {
+  // Check if last 4+ cards have same value
+  const groups = groupByValue(allCardsInCenter);
+  return groups.some(group => group.length >= 4);
+}
+```
+
+## Security Considerations
+- Validate all player actions on server
+- Never trust client-side game state
+- Hide opponent hand cards in server responses
+- Implement rate limiting on WebSocket messages
+- Validate room codes and player IDs
+- Prevent cheating through client manipulation
+- Sanitize player names and chat messages
+
+## Performance Optimizations
+- Use WebSocket connection pooling
+- Implement efficient card shuffling algorithm
+- Minimize game state payloads (send diffs, not full state)
+- Use CSS transforms for card animations (GPU acceleration)
+- Lazy load card images
+- Debounce rapid card selections
+- Optimize re-renders in React (useMemo, useCallback)
+
+## Testing Strategy
+- Unit tests for game logic functions
+- Integration tests for WebSocket handlers
+- End-to-end tests for full game flow
+- Test edge cases:
+  * Face-down card reveals
+  * Multiple players acting quickly
+  * Disconnection during turn
+  * Invalid move attempts
+  * Set detection with multiple decks
+- Load testing (multiple concurrent rooms)
+
+# Deployment
+
+## Frontend
+- Host static files on Netlify, Vercel, or similar
+- Configure WebSocket connection URL via environment variable
+- Implement service worker for offline card assets
+
+## Backend
+- Deploy Go server to cloud platform (AWS, GCP, DigitalOcean)
+- Use Docker for containerization
+- Set up WebSocket load balancing if needed
+- Implement health checks and monitoring
+- Configure CORS for WebSocket connections
+- Use HTTPS/WSS in production
+
+## Environment Variables
+```
+# Frontend
+REACT_APP_WS_URL=wss://your-server.com
+REACT_APP_API_URL=https://your-server.com/api
+
+# Backend
+PORT=8080
+CORS_ORIGIN=https://your-frontend.com
+ROOM_CODE_LENGTH=6
+MAX_ROOMS=1000
+ROOM_TIMEOUT=3600
+```
+
+# Success Criteria
+- [ ] 3-10 players can join and play simultaneously
+- [ ] All game rules from GAME_RULES.md are correctly implemented
+- [ ] Game state stays synchronized across all clients
+- [ ] Responsive on mobile and desktop browsers
+- [ ] Handle player disconnection and reconnection
+- [ ] Score calculation matches rules exactly
+- [ ] UI is intuitive and requires no tutorial for card game players
+- [ ] No game-breaking bugs in core gameplay
+- [ ] Average latency < 200ms for game actions
+- [ ] Can support 50+ concurrent game rooms
