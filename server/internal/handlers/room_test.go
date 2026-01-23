@@ -321,4 +321,77 @@ func TestRoomHandlers(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "GAME_STARTED", startResponse["type"])
 	})
+
+	t.Run("START_GAME uses join order for players", func(t *testing.T) {
+		handler := NewRoomHandler()
+		server := httptest.NewServer(http.HandlerFunc(handler.HandleWebSocket))
+		defer server.Close()
+
+		wsURL := "ws" + strings.TrimPrefix(server.URL, "http")
+
+		// Host connection
+		hostConn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+		require.NoError(t, err)
+		defer hostConn.Close()
+		_, _, _ = hostConn.ReadMessage() // welcome
+
+		createMsg := map[string]interface{}{
+			"type":       "CREATE_ROOM",
+			"playerName": "Host",
+		}
+		require.NoError(t, hostConn.WriteJSON(createMsg))
+		_, msg, err := hostConn.ReadMessage()
+		require.NoError(t, err)
+
+		var createResp map[string]interface{}
+		require.NoError(t, json.Unmarshal(msg, &createResp))
+		roomCode := createResp["roomCode"].(string)
+		hostID := createResp["playerId"].(string)
+
+		// Join Player2
+		p2Conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+		require.NoError(t, err)
+		defer p2Conn.Close()
+		_, _, _ = p2Conn.ReadMessage() // welcome
+		joinMsg := map[string]interface{}{"type": "JOIN_ROOM", "roomCode": roomCode, "playerName": "Player2"}
+		require.NoError(t, p2Conn.WriteJSON(joinMsg))
+		_, _, _ = p2Conn.ReadMessage()   // join response
+		_, _, _ = hostConn.ReadMessage() // PLAYER_JOINED
+
+		// Join Player3
+		p3Conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+		require.NoError(t, err)
+		defer p3Conn.Close()
+		_, _, _ = p3Conn.ReadMessage() // welcome
+		joinMsg3 := map[string]interface{}{"type": "JOIN_ROOM", "roomCode": roomCode, "playerName": "Player3"}
+		require.NoError(t, p3Conn.WriteJSON(joinMsg3))
+		_, _, _ = p3Conn.ReadMessage()   // join response
+		_, _, _ = hostConn.ReadMessage() // PLAYER_JOINED
+		_, _, _ = p2Conn.ReadMessage()   // PLAYER_JOINED
+
+		// Host starts game
+		startMsg := map[string]interface{}{"type": "START_GAME", "roomCode": roomCode, "playerId": hostID}
+		require.NoError(t, hostConn.WriteJSON(startMsg))
+
+		// Host should receive GAME_STARTED
+		_, msg, err = hostConn.ReadMessage()
+		require.NoError(t, err)
+		var startResp map[string]interface{}
+		require.NoError(t, json.Unmarshal(msg, &startResp))
+		require.Equal(t, "GAME_STARTED", startResp["type"])
+
+		gameData, ok := startResp["game"].(map[string]interface{})
+		require.True(t, ok, "game payload missing")
+		playersRaw, ok := gameData["players"].([]interface{})
+		require.True(t, ok, "players payload missing")
+		require.Len(t, playersRaw, 3)
+
+		var names []string
+		for _, p := range playersRaw {
+			pm := p.(map[string]interface{})
+			names = append(names, pm["name"].(string))
+		}
+
+		assert.Equal(t, []string{"Host", "Player2", "Player3"}, names, "players should follow join order")
+	})
 }

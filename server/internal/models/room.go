@@ -22,24 +22,26 @@ type Player struct {
 
 // Room represents a game room
 type Room struct {
-	ID        string
-	Code      string             `json:"code"`
-	HostID    string             `json:"hostId"`
-	Players   map[string]*Player `json:"players"`
-	Clients   map[*websocket.Conn]bool
-	CreatedAt time.Time `json:"createdAt"`
-	mu        sync.RWMutex
+	ID          string
+	Code        string             `json:"code"`
+	HostID      string             `json:"hostId"`
+	Players     map[string]*Player `json:"players"`
+	PlayerOrder []string
+	Clients     map[*websocket.Conn]bool
+	CreatedAt   time.Time `json:"createdAt"`
+	mu          sync.RWMutex
 }
 
 // NewRoom creates a new room with the given ID and code
 func NewRoom(id, code, hostID string) *Room {
 	return &Room{
-		ID:        id,
-		Code:      code,
-		HostID:    hostID,
-		Players:   make(map[string]*Player),
-		Clients:   make(map[*websocket.Conn]bool),
-		CreatedAt: time.Now(),
+		ID:          id,
+		Code:        code,
+		HostID:      hostID,
+		Players:     make(map[string]*Player),
+		PlayerOrder: []string{},
+		Clients:     make(map[*websocket.Conn]bool),
+		CreatedAt:   time.Now(),
 	}
 }
 
@@ -48,6 +50,7 @@ func (r *Room) AddPlayer(player *Player) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.Players[player.ID] = player
+	r.PlayerOrder = append(r.PlayerOrder, player.ID)
 }
 
 // RemovePlayer removes a player from the room
@@ -55,6 +58,12 @@ func (r *Room) RemovePlayer(playerID string) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	delete(r.Players, playerID)
+	for i, id := range r.PlayerOrder {
+		if id == playerID {
+			r.PlayerOrder = append(r.PlayerOrder[:i], r.PlayerOrder[i+1:]...)
+			break
+		}
+	}
 }
 
 // GetPlayer gets a player by ID
@@ -82,6 +91,43 @@ func (r *Room) HasPlayerWithName(name string) bool {
 		}
 	}
 	return false
+}
+
+// GetPlayersInOrder returns players in join order
+func (r *Room) GetPlayersInOrder() []*Player {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	ordered := make([]*Player, 0, len(r.PlayerOrder))
+	for _, id := range r.PlayerOrder {
+		if p, ok := r.Players[id]; ok {
+			ordered = append(ordered, p)
+		}
+	}
+	return ordered
+}
+
+// GetHostID safely returns the current host ID
+func (r *Room) GetHostID() string {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return r.HostID
+}
+
+// SetHostID safely sets the host ID
+func (r *Room) SetHostID(id string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.HostID = id
+}
+
+// NextHost returns the first player in order, or empty string if none
+func (r *Room) NextHost() string {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	if len(r.PlayerOrder) == 0 {
+		return ""
+	}
+	return r.PlayerOrder[0]
 }
 
 // AddClient adds a client connection to the room

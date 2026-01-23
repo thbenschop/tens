@@ -299,7 +299,7 @@ func (h *RoomHandler) handleStartGame(conn *websocket.Conn, msg map[string]inter
 	}
 
 	// Check if player is host
-	if room.HostID != playerID {
+	if room.GetHostID() != playerID {
 		h.sendError(conn, "Only the host can start the game")
 		return
 	}
@@ -310,11 +310,8 @@ func (h *RoomHandler) handleStartGame(conn *websocket.Conn, msg map[string]inter
 		return
 	}
 
-	// Convert room players to slice for game service
-	players := make([]*models.Player, 0, len(room.Players))
-	for _, player := range room.Players {
-		players = append(players, player)
-	}
+	// Convert room players to slice in join order for deterministic turn/dealer rotation
+	players := room.GetPlayersInOrder()
 
 	// Start the game - this creates deck, shuffles, and deals cards
 	game := services.StartGame(players)
@@ -398,8 +395,8 @@ func (h *RoomHandler) serializeRoom(room *models.Room) map[string]interface{} {
 		return nil
 	}
 
-	players := make([]map[string]interface{}, 0, len(room.Players))
-	for _, player := range room.Players {
+	players := make([]map[string]interface{}, 0, room.GetPlayerCount())
+	for _, player := range room.GetPlayersInOrder() {
 		players = append(players, map[string]interface{}{
 			"id":   player.ID,
 			"name": player.Name,
@@ -408,7 +405,7 @@ func (h *RoomHandler) serializeRoom(room *models.Room) map[string]interface{} {
 
 	return map[string]interface{}{
 		"code":        room.Code,
-		"hostId":      room.HostID,
+		"hostId":      room.GetHostID(),
 		"players":     players,
 		"playerCount": room.GetPlayerCount(),
 	}

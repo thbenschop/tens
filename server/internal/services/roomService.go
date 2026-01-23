@@ -127,11 +127,10 @@ func (s *RoomService) LeaveRoom(roomCode, playerID string) error {
 		return nil
 	}
 
-	// If host left, reassign to first remaining player
-	if room.HostID == playerID {
-		for _, player := range room.Players {
-			room.HostID = player.ID
-			break
+	// If host left, reassign to first remaining player in join order
+	if room.GetHostID() == playerID {
+		if next := room.NextHost(); next != "" {
+			room.SetHostID(next)
 		}
 	}
 
