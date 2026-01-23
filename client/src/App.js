@@ -16,6 +16,8 @@ function App() {
     gameStarted,
     error,
     isConnected,
+    isConnecting,
+    connectionAttempts,
     wsError,
     createRoom,
     joinRoom,
@@ -43,13 +45,49 @@ function App() {
     startGame();
   };
 
+  const connectionStatusText = isConnected
+    ? 'Connected'
+    : connectionAttempts > 1
+      ? 'Reconnecting'
+      : isConnecting
+        ? 'Connecting'
+        : 'Disconnected';
+
+  const connectionDotClass = isConnected
+    ? 'bg-green-400'
+    : connectionAttempts > 1
+      ? 'bg-yellow-400'
+      : 'bg-red-400';
+
+  const renderConnectionBanner = () => {
+    if (isConnected) return null;
+
+    const message = connectionAttempts > 1
+      ? 'Reconnecting to server...'
+      : 'Connecting to server...';
+
+    return (
+      <div className="max-w-4xl mx-auto mb-4">
+        <div className="bg-yellow-50 border border-yellow-300 text-yellow-800 px-4 py-3 rounded shadow-sm" role="status">
+          {message}
+        </div>
+      </div>
+    );
+  };
+
   if (gameStarted) {
-    return <GameBoard state={gameState} />;
+    return (
+      <div className="min-h-screen bg-gray-100 py-4 px-4">
+        {renderConnectionBanner()}
+        <GameBoard state={gameState} />
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600 py-8 px-4">
       <div className="max-w-4xl mx-auto">
+        {renderConnectionBanner()}
         <header className="text-center mb-8">
           <h1 className="text-5xl font-bold text-white mb-2 drop-shadow-lg">
             Clear the Deck
@@ -57,12 +95,10 @@ function App() {
           <div className="flex items-center justify-center gap-2 text-white">
             <div
               className={`w-3 h-3 rounded-full ${
-                isConnected ? 'bg-green-400' : 'bg-red-400'
+                connectionDotClass
               }`}
             />
-            <span className="text-sm">
-              {isConnected ? 'Connected' : 'Disconnected'}
-            </span>
+            <span className="text-sm">{connectionStatusText}</span>
           </div>
           {(error || wsError) && (
             <div className="mt-3 max-w-md mx-auto">
@@ -129,9 +165,9 @@ function App() {
                   Join Room
                 </button>
               </div>
-              {!isConnected && (
+              {(!isConnected || isConnecting) && (
                 <p className="mt-4 text-center text-sm text-gray-500">
-                  Connecting to server...
+                  {connectionAttempts > 1 ? 'Reconnecting to server...' : 'Connecting to server...'}
                 </p>
               )}
             </div>

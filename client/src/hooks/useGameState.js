@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import useWebSocket from './useWebSocket';
 import { canFlipFaceDown } from '../utils/gameLogic';
 
@@ -29,48 +29,6 @@ function useGameState() {
     roundResult: null,
     error: null,
   });
-
-  const { isConnected, error: wsError, sendMessage } = useWebSocket(
-    WS_URL,
-    {
-      onMessage: (data) => {
-        handleMessage(data);
-      },
-    }
-  );
-
-  const normalizedPlayers = useMemo(() => {
-    const players = gameState.game?.players || gameState.game?.Players || [];
-    return players.map(normalizePlayer).filter((player) => player.id);
-  }, [gameState.game]);
-
-  const currentPlayer = useMemo(
-    () => normalizedPlayers.find((player) => player.id === gameState.playerId) || null,
-    [normalizedPlayers, gameState.playerId]
-  );
-
-  const currentTurnPlayerId = useMemo(() => {
-    const currentIndex =
-      gameState.game?.currentPlayerIndex ?? gameState.game?.CurrentPlayerIndex;
-
-    if (currentIndex === null || currentIndex === undefined) {
-      return null;
-    }
-
-    return normalizedPlayers[currentIndex]?.id || null;
-  }, [gameState.game, normalizedPlayers]);
-
-  const isPlayerTurn = currentTurnPlayerId === gameState.playerId;
-
-  const centerPile = useMemo(
-    () => gameState.game?.centerPile || gameState.game?.CenterPile || [],
-    [gameState.game]
-  );
-
-  const tableCardsUp = currentPlayer?.tableCardsUp || [];
-  const tableCardsDown = currentPlayer?.tableCardsDown || [];
-  const hand = currentPlayer?.hand || [];
-  const canFlip = canFlipFaceDown(currentPlayer);
 
   const handleMessage = useCallback((data) => {
     switch (data.type) {
@@ -115,6 +73,7 @@ function useGameState() {
       case 'GAME_UPDATE':
         setGameState((prev) => ({
           ...prev,
+          gameStarted: prev.gameStarted || !!data.game,
           game: data.game,
         }));
         break;
@@ -150,6 +109,63 @@ function useGameState() {
         break;
     }
   }, []);
+
+  const {
+    isConnected,
+    isConnecting,
+    error: wsError,
+    connectionAttempts,
+    sendMessage,
+  } = useWebSocket(
+    WS_URL,
+    {
+      onMessage: (data) => {
+        handleMessage(data);
+      },
+    }
+  );
+
+  useEffect(() => {
+    if (wsError) {
+      setGameState((prev) => ({
+        ...prev,
+        error: wsError.message || 'WebSocket connection error',
+      }));
+    }
+  }, [wsError]);
+
+  const normalizedPlayers = useMemo(() => {
+    const players = gameState.game?.players || gameState.game?.Players || [];
+    return players.map(normalizePlayer).filter((player) => player.id);
+  }, [gameState.game]);
+
+  const currentPlayer = useMemo(
+    () => normalizedPlayers.find((player) => player.id === gameState.playerId) || null,
+    [normalizedPlayers, gameState.playerId]
+  );
+
+  const currentTurnPlayerId = useMemo(() => {
+    const currentIndex =
+      gameState.game?.currentPlayerIndex ?? gameState.game?.CurrentPlayerIndex;
+
+    if (currentIndex === null || currentIndex === undefined) {
+      return null;
+    }
+
+    return normalizedPlayers[currentIndex]?.id || null;
+  }, [gameState.game, normalizedPlayers]);
+
+  const isPlayerTurn = currentTurnPlayerId === gameState.playerId;
+
+  const centerPile = useMemo(
+    () => gameState.game?.centerPile || gameState.game?.CenterPile || [],
+    [gameState.game]
+  );
+
+  const tableCardsUp = currentPlayer?.tableCardsUp || [];
+  const tableCardsDown = currentPlayer?.tableCardsDown || [];
+  const hand = currentPlayer?.hand || [];
+  const canFlip = canFlipFaceDown(currentPlayer);
 
   const createRoom = useCallback(
     (playerName) => {
@@ -263,6 +279,8 @@ function useGameState() {
   return {
     ...gameState,
     isConnected,
+    isConnecting,
+    connectionAttempts,
     wsError,
     players: normalizedPlayers,
     hand,

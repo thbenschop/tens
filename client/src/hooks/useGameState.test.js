@@ -27,6 +27,10 @@ class MockWebSocket {
   }
 }
 MockWebSocket.instances = [];
+MockWebSocket.CONNECTING = 0;
+MockWebSocket.OPEN = 1;
+MockWebSocket.CLOSING = 2;
+MockWebSocket.CLOSED = 3;
 
 describe('useGameState', () => {
   beforeEach(() => {

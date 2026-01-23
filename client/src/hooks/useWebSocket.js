@@ -12,47 +12,94 @@ import { useState, useEffect, useRef, useCallback } from 'react';
  */
 function useWebSocket(url, options = {}) {
   const [isConnected, setIsConnected] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(!!url);
   const [error, setError] = useState(null);
+  const [lastMessage, setLastMessage] = useState(null);
+  const [connectionAttempts, setConnectionAttempts] = useState(0);
+
   const wsRef = useRef(null);
+  const reconnectTimeoutRef = useRef(null);
+  const reconnectAttemptsRef = useRef(0);
+  const shouldReconnectRef = useRef(true);
+  const reconnectScheduledRef = useRef(false);
   const { onMessage, onOpen, onClose, onError } = options;
 
+  const clearReconnectTimer = () => {
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+  };
+
   useEffect(() => {
-    if (!url) return;
+    if (!url) return undefined;
 
-    // Create WebSocket connection
-    const ws = new WebSocket(url);
-    wsRef.current = ws;
+    shouldReconnectRef.current = true;
 
-    ws.onopen = (event) => {
-      setIsConnected(true);
-      setError(null);
-      if (onOpen) onOpen(event);
+    const connect = () => {
+      setIsConnecting(true);
+      setConnectionAttempts((prev) => prev + 1);
+
+      const ws = new WebSocket(url);
+      wsRef.current = ws;
+
+      ws.onopen = (event) => {
+        reconnectAttemptsRef.current = 0;
+        reconnectScheduledRef.current = false;
+        setIsConnected(true);
+        setIsConnecting(false);
+        setError(null);
+        if (onOpen) onOpen(event);
+      };
+
+      const scheduleReconnect = () => {
+        if (!shouldReconnectRef.current) return;
+        if (reconnectScheduledRef.current) return;
+        reconnectScheduledRef.current = true;
+        const delay = Math.min(500 * 2 ** reconnectAttemptsRef.current, 4000);
+        reconnectAttemptsRef.current += 1;
+        setIsConnected(false);
+        setIsConnecting(true);
+        clearReconnectTimer();
+        reconnectTimeoutRef.current = setTimeout(connect, delay);
+      };
+
+      ws.onclose = (event) => {
+        reconnectScheduledRef.current = false;
+        setIsConnected(false);
+        if (onClose) onClose(event);
+        scheduleReconnect();
+      };
+
+      ws.onerror = (event) => {
+        setError(new Error('WebSocket connection error'));
+        setIsConnected(false);
+        if (onError) onError(event);
+        scheduleReconnect();
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          setLastMessage(data);
+          if (onMessage) onMessage(data);
+        } catch (err) {
+          console.error('Failed to parse WebSocket message:', err);
+        }
+      };
     };
 
-    ws.onclose = (event) => {
-      setIsConnected(false);
-      if (onClose) onClose(event);
-    };
+    connect();
 
-    ws.onerror = (event) => {
-      setError(new Error('WebSocket connection error'));
-      setIsConnected(false);
-      if (onError) onError(event);
-    };
-
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (onMessage) onMessage(data);
-      } catch (err) {
-        console.error('Failed to parse WebSocket message:', err);
-      }
-    };
-
-    // Cleanup on unmount
     return () => {
-      if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
-        ws.close();
+      shouldReconnectRef.current = false;
+      clearReconnectTimer();
+      if (
+        wsRef.current &&
+        (wsRef.current.readyState === WebSocket.OPEN ||
+          wsRef.current.readyState === WebSocket.CONNECTING)
+      ) {
+        wsRef.current.close();
       }
     };
   }, [url, onMessage, onOpen, onClose, onError]);
@@ -67,7 +114,10 @@ function useWebSocket(url, options = {}) {
 
   return {
     isConnected,
+    isConnecting,
     error,
+    lastMessage,
+    connectionAttempts,
     sendMessage,
   };
 }

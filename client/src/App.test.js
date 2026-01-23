@@ -1,93 +1,141 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
 import App from './App';
-import useGameState from './hooks/useGameState';
 
-//Mock the custom hooks
-jest.mock('./hooks/useGameState');
+class MockWebSocket {
+  constructor(url) {
+    this.url = url;
+    this.readyState = WebSocket.CONNECTING;
+    this.onopen = null;
+    this.onclose = null;
+    this.onerror = null;
+    this.onmessage = null;
+    this.send = jest.fn();
+    MockWebSocket.instances.push(this);
+  }
 
-jest.mock('./components/lobby/CreateRoom', () => {
-  return function CreateRoom() {
-    return <div data-testid="create-room">Create Room Component</div>;
-  };
-});
+  open() {
+    this.readyState = WebSocket.OPEN;
+    this.onopen && this.onopen(new Event('open'));
+  }
 
-jest.mock('./components/lobby/JoinRoom', () => {
-  return function JoinRoom() {
-    return <div data-testid="join-room">Join Room Component</div>;
-  };
-});
+  close() {
+    this.readyState = WebSocket.CLOSED;
+    this.onclose && this.onclose(new Event('close'));
+  }
 
-jest.mock('./components/lobby/Lobby', () => {
-  return function Lobby() {
-    return <div data-testid="lobby">Lobby Component</div>;
-  };
-});
+  emitMessage(data) {
+    const event = new MessageEvent('message', { data: JSON.stringify(data) });
+    this.onmessage && this.onmessage(event);
+  }
+}
 
-jest.mock('./components/game/GameBoard', () => {
-  return function GameBoard() {
-    return <div data-testid="game-board">Game Board Component</div>;
-  };
-});
+MockWebSocket.instances = [];
+MockWebSocket.CONNECTING = 0;
+MockWebSocket.OPEN = 1;
+MockWebSocket.CLOSING = 2;
+MockWebSocket.CLOSED = 3;
 
-describe('App Component', () => {
+const getSocket = () => MockWebSocket.instances[MockWebSocket.instances.length - 1];
+const sendServer = (payload) => {
+  const socket = getSocket();
+  act(() => {
+    socket.emitMessage(payload);
+  });
+};
+
+describe('App integration', () => {
+  let realWebSocket;
+
   beforeEach(() => {
-    useGameState.mockReturnValue({
-      room: null,
-      playerId: null,
-      isHost: false,
-      gameStarted: false,
-      roundResult: null,
-      error: null,
-      isConnected: true,
-      wsError: null,
-      createRoom: jest.fn(),
-      joinRoom: jest.fn(),
-      leaveRoom: jest.fn(),
-      startGame: jest.fn(),
-      startNextRound: jest.fn(),
-      clearError: jest.fn(),
+    jest.useFakeTimers();
+    realWebSocket = global.WebSocket;
+    MockWebSocket.instances = [];
+    global.WebSocket = MockWebSocket;
+  });
+
+  afterEach(() => {
+    act(() => {
+      MockWebSocket.instances.forEach((ws) => ws.close());
+    });
+    jest.runOnlyPendingTimers();
+    global.WebSocket = realWebSocket;
+    jest.useRealTimers();
+  });
+
+  test('shows connecting and reconnecting banners', async () => {
+    render(<App />);
+
+    expect(screen.getByText(/Connecting to server/i)).toBeInTheDocument();
+
+    const socket = getSocket();
+
+    act(() => socket.close());
+
+    act(() => {
+      jest.advanceTimersByTime(600);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/Reconnecting/i)).toBeInTheDocument();
     });
   });
 
-  test('renders without crashing', () => {
+  test('flows from lobby to game and shows round end scoreboard', async () => {
     render(<App />);
-    expect(screen.getByText('Clear the Deck')).toBeInTheDocument();
-  });
 
-  test('shows main menu by default', () => {
-    render(<App />);
-    expect(screen.getByText('Welcome!')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Create Room/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Join Room/i })).toBeInTheDocument();
-  });
+    act(() => {
+      getSocket().open();
+    });
 
-  test('displays connection status', () => {
-    render(<App />);
-    expect(screen.getByText('Connected')).toBeInTheDocument();
-  });
+    fireEvent.click(screen.getByRole('button', { name: /Create Room/i }));
 
-  test('shows game board when game has started', () => {
-    useGameState.mockReturnValue({
-      room: { code: 'ROOM1' },
+    fireEvent.change(screen.getByLabelText(/Your Name/i), { target: { value: 'Alice' } });
+    fireEvent.click(screen.getByRole('button', { name: /^Create Room$/i }));
+
+    sendServer({
+      type: 'ROOM_CREATED',
       playerId: 'p1',
-      isHost: true,
-      gameStarted: true,
-      roundResult: null,
-      error: null,
-      isConnected: true,
-      wsError: null,
-      createRoom: jest.fn(),
-      joinRoom: jest.fn(),
-      leaveRoom: jest.fn(),
-      startGame: jest.fn(),
-      startNextRound: jest.fn(),
-      clearError: jest.fn(),
+      roomCode: 'ROOM1',
+      room: { code: 'ROOM1', hostId: 'p1', players: [{ id: 'p1', name: 'Alice' }] },
     });
 
+    await waitFor(() => expect(screen.getByText(/Game Lobby/i)).toBeInTheDocument());
+
+    const game = {
+      players: [
+        { id: 'p1', name: 'Alice', hand: [], tableCardsUp: [], tableCardsDown: [], roundScore: 0, totalScore: 0 },
+      ],
+      centerPile: [],
+      currentPlayerIndex: 0,
+    };
+
+    sendServer({ type: 'GAME_STARTED', game });
+
+    await waitFor(() => expect(screen.getByText(/Clear the Deck/i)).toBeInTheDocument());
+
+    sendServer({
+      type: 'ROUND_END',
+      winner: { id: 'p1', name: 'Alice' },
+      scores: [{ id: 'p1', name: 'Alice', roundScore: 0, totalScore: 0 }],
+      round: 1,
+      game: { ...game, round: 1 },
+    });
+
+    await waitFor(() => expect(screen.getByText(/Round 1 Complete/i)).toBeInTheDocument());
+    expect(screen.getByText(/Alice wins the round/i)).toBeInTheDocument();
+  });
+
+  test('renders server error payload', async () => {
     render(<App />);
 
-    expect(screen.getByTestId('game-board')).toBeInTheDocument();
+    act(() => {
+      getSocket().open();
+    });
+
+    sendServer({ type: 'ERROR', message: 'Bad request' });
+
+    await waitFor(() => expect(screen.getByText(/Bad request/)).toBeInTheDocument());
   });
 });
 
