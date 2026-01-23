@@ -18,7 +18,7 @@ Implemented comprehensive win detection, scoring calculation, round end logic, a
 - client/src/hooks/useGameState.js
 
 **Functions created/changed:**
-- scorer.GetCardPointValue() - Returns point value for cards (A=1, 2-9=face, 10=25, J=11, Q=12, K=13)
+- scorer.GetCardPointValue() - Returns point value for cards (A=1, 2-9=face, 10=20, J=11, Q=12, K=13)
 - scorer.CalculatePlayerScore() - Sums points from all player card locations
 - gameService.CheckWinCondition() - Returns true if player has 0 cards remaining
 - gameService.EndRound() - Calculates scores (winner=0, others=remaining cards), updates totals

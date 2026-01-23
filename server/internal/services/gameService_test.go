@@ -808,9 +808,9 @@ func TestEndRound(t *testing.T) {
 
 		EndRound(game, "p1")
 
-		// Player 2: 2 + 13 + 25 = 40
-		if players[1].RoundScore != 40 {
-			t.Errorf("Player 2 round score = %d, expected 40", players[1].RoundScore)
+		// Player 2: 2 + 13 + 20 = 35
+		if players[1].RoundScore != 35 {
+			t.Errorf("Player 2 round score = %d, expected 35", players[1].RoundScore)
 		}
 	})
 }

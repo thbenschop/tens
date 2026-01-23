@@ -25,7 +25,7 @@ func GetCardPointValue(card *models.Card) int {
 	case "9":
 		return 9
 	case "10":
-		return 25 // Tens are worth 25 points for scoring per game rules
+		return 20 // Tens are worth 20 points for scoring per game rules
 	case "J":
 		return 11
 	case "Q":

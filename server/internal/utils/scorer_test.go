@@ -58,9 +58,9 @@ func TestGetCardPointValue(t *testing.T) {
 			expectedValue: 9,
 		},
 		{
-			name:          "Ten is 25 points",
+			name:          "Ten is 20 points",
 			card:          &models.Card{Value: "10"},
-			expectedValue: 25,
+			expectedValue: 20,
 		},
 		{
 			name:          "Jack is 11 points",
@@ -192,9 +192,9 @@ func TestCalculatePlayerScore(t *testing.T) {
 		}
 
 		score := CalculatePlayerScore(player)
-		// 25 + 25 = 50
-		if score != 50 {
-			t.Errorf("Expected 50 points for two tens, got %d", score)
+		// 20 + 20 = 40
+		if score != 40 {
+			t.Errorf("Expected 40 points for two tens, got %d", score)
 		}
 	})
 
@@ -216,9 +216,9 @@ func TestCalculatePlayerScore(t *testing.T) {
 		}
 
 		score := CalculatePlayerScore(player)
-		// 1 + 25 + 13 + 5 + 12 + 7 = 63
-		if score != 63 {
-			t.Errorf("Expected 63 points, got %d", score)
+		// 1 + 20 + 13 + 5 + 12 + 7 = 58
+		if score != 58 {
+			t.Errorf("Expected 58 points, got %d", score)
 		}
 	})
 }
