@@ -19,9 +19,10 @@ type FlipFaceDownMessage struct {
 
 // GameResponse represents the game state response sent to clients
 type GameResponse struct {
-	Type  string       `json:"type"`
-	Game  *models.Game `json:"game,omitempty"`
-	Error string       `json:"error,omitempty"`
+	Type  string                 `json:"type"`
+	Game  *models.Game           `json:"game,omitempty"`
+	Room  map[string]interface{} `json:"room,omitempty"`
+	Error string                 `json:"error,omitempty"`
 }
 
 // HandlePlayCards processes PLAY_CARDS WebSocket message
@@ -183,7 +184,7 @@ func (h *RoomHandler) handleNextRound(conn *websocket.Conn, msg map[string]inter
 	}
 
 	// Only host can start next round
-	if room.HostID != connInfo.PlayerID {
+	if room.GetHostID() != connInfo.PlayerID {
 		h.sendError(conn, "Only host can start next round")
 		return
 	}

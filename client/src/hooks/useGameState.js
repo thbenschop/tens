@@ -12,6 +12,7 @@ function useGameState() {
     playerId: null,
     roomCode: null,
     room: null,
+    game: null,
     isHost: false,
     gameStarted: false,
     roundResult: null,
@@ -62,7 +63,14 @@ function useGameState() {
         setGameState((prev) => ({
           ...prev,
           gameStarted: true,
-          room: data.room,
+          game: data.game,
+        }));
+        break;
+
+      case 'GAME_UPDATE':
+        setGameState((prev) => ({
+          ...prev,
+          game: data.game,
         }));
         break;
 
@@ -71,10 +79,10 @@ function useGameState() {
           ...prev,
           roundResult: {
             winner: data.winner,
-            players: data.players,
-            roundNumber: data.roundNumber,
+            players: data.scores,
+            roundNumber: data.round,
           },
-          room: data.room,
+          game: data.game,
         }));
         break;
 
@@ -82,7 +90,7 @@ function useGameState() {
         setGameState((prev) => ({
           ...prev,
           roundResult: null,
-          room: data.room,
+          game: data.game,
         }));
         break;
 
