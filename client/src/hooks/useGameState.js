@@ -1,7 +1,18 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import useWebSocket from './useWebSocket';
+import { canFlipFaceDown } from '../utils/gameLogic';
 
 const WS_URL = process.env.REACT_APP_WS_URL || 'ws://localhost:8080/ws';
+
+const normalizePlayer = (player) => ({
+  id: player?.id || player?.ID || '',
+  name: player?.name || player?.Name || 'Player',
+  hand: player?.hand || player?.Hand || [],
+  tableCardsUp: player?.tableCardsUp || player?.TableCardsUp || [],
+  tableCardsDown: player?.tableCardsDown || player?.TableCardsDown || [],
+  roundScore: player?.roundScore ?? player?.RoundScore ?? 0,
+  totalScore: player?.totalScore ?? player?.TotalScore ?? 0,
+});
 
 /**
  * Custom hook for managing game state and room operations
@@ -28,6 +39,39 @@ function useGameState() {
     }
   );
 
+  const normalizedPlayers = useMemo(() => {
+    const players = gameState.game?.players || gameState.game?.Players || [];
+    return players.map(normalizePlayer).filter((player) => player.id);
+  }, [gameState.game]);
+
+  const currentPlayer = useMemo(
+    () => normalizedPlayers.find((player) => player.id === gameState.playerId) || null,
+    [normalizedPlayers, gameState.playerId]
+  );
+
+  const currentTurnPlayerId = useMemo(() => {
+    const currentIndex =
+      gameState.game?.currentPlayerIndex ?? gameState.game?.CurrentPlayerIndex;
+
+    if (currentIndex === null || currentIndex === undefined) {
+      return null;
+    }
+
+    return normalizedPlayers[currentIndex]?.id || null;
+  }, [gameState.game, normalizedPlayers]);
+
+  const isPlayerTurn = currentTurnPlayerId === gameState.playerId;
+
+  const centerPile = useMemo(
+    () => gameState.game?.centerPile || gameState.game?.CenterPile || [],
+    [gameState.game]
+  );
+
+  const tableCardsUp = currentPlayer?.tableCardsUp || [];
+  const tableCardsDown = currentPlayer?.tableCardsDown || [];
+  const hand = currentPlayer?.hand || [];
+  const canFlip = canFlipFaceDown(currentPlayer);
+
   const handleMessage = useCallback((data) => {
     switch (data.type) {
       case 'ROOM_CREATED':
@@ -45,6 +89,7 @@ function useGameState() {
         setGameState((prev) => ({
           ...prev,
           playerId: data.playerId,
+          roomCode: data.room?.code || prev.roomCode,
           room: data.room,
           isHost: data.room.hostId === data.playerId,
           error: null,
@@ -152,6 +197,8 @@ function useGameState() {
         room: null,
         isHost: false,
         gameStarted: false,
+        game: null,
+        roundResult: null,
         error: null,
       });
     }
@@ -184,15 +231,54 @@ function useGameState() {
     }
   }, [gameState.roomCode, gameState.playerId, gameState.isHost, sendMessage]);
 
+  const sendPlayCards = useCallback(
+    (cards = [], afterPickup = false) => {
+      const cardIds = cards
+        .map((card) => card?.id || card?.ID)
+        .filter(Boolean);
+
+      if (!cardIds.length) return;
+
+      sendMessage({
+        type: 'PLAY_CARDS',
+        cardIds,
+        afterPickup,
+      });
+    },
+    [sendMessage]
+  );
+
+  const flipFaceDown = useCallback(
+    (cardId) => {
+      if (!cardId) return;
+
+      sendMessage({
+        type: 'FLIP_FACE_DOWN',
+        cardId,
+      });
+    },
+    [sendMessage]
+  );
+
   return {
     ...gameState,
     isConnected,
     wsError,
+    players: normalizedPlayers,
+    hand,
+    tableCardsUp,
+    tableCardsDown,
+    centerPile,
+    currentTurnPlayerId,
+    isPlayerTurn,
+    canFlip,
     createRoom,
     joinRoom,
     leaveRoom,
     startGame,
     startNextRound,
+    sendPlayCards,
+    flipFaceDown,
     clearError,
   };
 }

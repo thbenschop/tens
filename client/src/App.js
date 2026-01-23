@@ -3,10 +3,12 @@ import useGameState from './hooks/useGameState';
 import CreateRoom from './components/lobby/CreateRoom';
 import JoinRoom from './components/lobby/JoinRoom';
 import Lobby from './components/lobby/Lobby';
+import GameBoard from './components/game/GameBoard';
 
 function App() {
   const [view, setView] = useState('menu'); // 'menu', 'create', 'join', 'lobby', 'game'
   
+  const gameState = useGameState();
   const {
     room,
     playerId,
@@ -20,7 +22,7 @@ function App() {
     leaveRoom,
     startGame,
     clearError,
-  } = useGameState();
+  } = gameState;
 
   const handleCreateRoom = (playerName) => {
     createRoom(playerName);
@@ -42,16 +44,7 @@ function App() {
   };
 
   if (gameStarted) {
-    return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold text-gray-800 mb-4">
-            Game Started!
-          </h1>
-          <p className="text-gray-600">Game implementation coming in Phase 3+</p>
-        </div>
-      </div>
-    );
+    return <GameBoard state={gameState} />;
   }
 
   return (

@@ -24,6 +24,12 @@ jest.mock('./components/lobby/Lobby', () => {
   };
 });
 
+jest.mock('./components/game/GameBoard', () => {
+  return function GameBoard() {
+    return <div data-testid="game-board">Game Board Component</div>;
+  };
+});
+
 describe('App Component', () => {
   beforeEach(() => {
     useGameState.mockReturnValue({
@@ -31,6 +37,7 @@ describe('App Component', () => {
       playerId: null,
       isHost: false,
       gameStarted: false,
+      roundResult: null,
       error: null,
       isConnected: true,
       wsError: null,
@@ -38,6 +45,7 @@ describe('App Component', () => {
       joinRoom: jest.fn(),
       leaveRoom: jest.fn(),
       startGame: jest.fn(),
+      startNextRound: jest.fn(),
       clearError: jest.fn(),
     });
   });
@@ -57,6 +65,29 @@ describe('App Component', () => {
   test('displays connection status', () => {
     render(<App />);
     expect(screen.getByText('Connected')).toBeInTheDocument();
+  });
+
+  test('shows game board when game has started', () => {
+    useGameState.mockReturnValue({
+      room: { code: 'ROOM1' },
+      playerId: 'p1',
+      isHost: true,
+      gameStarted: true,
+      roundResult: null,
+      error: null,
+      isConnected: true,
+      wsError: null,
+      createRoom: jest.fn(),
+      joinRoom: jest.fn(),
+      leaveRoom: jest.fn(),
+      startGame: jest.fn(),
+      startNextRound: jest.fn(),
+      clearError: jest.fn(),
+    });
+
+    render(<App />);
+
+    expect(screen.getByTestId('game-board')).toBeInTheDocument();
   });
 });
 
