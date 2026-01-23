@@ -4,10 +4,10 @@
 
 // Card suits
 export const SUITS = {
-  HEARTS: 'hearts',
-  DIAMONDS: 'diamonds',
-  CLUBS: 'clubs',
-  SPADES: 'spades',
+  HEARTS: 'Hearts',
+  DIAMONDS: 'Diamonds',
+  CLUBS: 'Clubs',
+  SPADES: 'Spades',
 };
 
 // Card suit symbols for display
@@ -26,21 +26,29 @@ export const SUIT_COLORS = {
   [SUITS.SPADES]: 'text-black',
 };
 
+// Suit order for deterministic sorting
+export const SUIT_ORDER = {
+  [SUITS.CLUBS]: 0,
+  [SUITS.DIAMONDS]: 1,
+  [SUITS.HEARTS]: 2,
+  [SUITS.SPADES]: 3,
+};
+
 // Card values
 export const CARD_VALUES = {
-  ACE: 'A',
-  TWO: '2',
-  THREE: '3',
-  FOUR: '4',
-  FIVE: '5',
-  SIX: '6',
-  SEVEN: '7',
-  EIGHT: '8',
-  NINE: '9',
-  TEN: '10',
-  JACK: 'J',
-  QUEEN: 'Q',
-  KING: 'K',
+  'A': 1,
+  '2': 2,
+  '3': 3,
+  '4': 4,
+  '5': 5,
+  '6': 6,
+  '7': 7,
+  '8': 8,
+  '9': 9,
+  '10': 10,
+  'J': 11,
+  'Q': 12,
+  'K': 13,
 };
 
 // Card point values for scoring

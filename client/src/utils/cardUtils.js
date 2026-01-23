@@ -2,7 +2,29 @@
  * Card utility functions for sorting, grouping, and display
  */
 
-import { SUITS, CARD_VALUES } from './constants';
+import { SUITS, CARD_VALUES, SUIT_SYMBOLS, CARD_POINTS, SUIT_ORDER, SUIT_COLORS } from './constants';
+
+const getFaceValue = (cardOrValue) => (
+  typeof cardOrValue === 'string' ? cardOrValue : cardOrValue?.value
+);
+
+export const getCardValue = (cardOrValue) => {
+  const face = getFaceValue(cardOrValue);
+  return CARD_VALUES[face] || 0;
+};
+
+export const getCardPoints = (cardOrValue) => {
+  const face = getFaceValue(cardOrValue);
+  return CARD_POINTS[face] || 0;
+};
+
+export const getSuitSymbol = (suit) => SUIT_SYMBOLS[suit] || '';
+
+const isCardValidForSort = (card) => {
+  if (!card || card.isFaceDown || card.faceDown) return false;
+  const value = getCardValue(card);
+  return value > 0 && SUIT_ORDER[card.suit] !== undefined;
+};
 
 /**
  * Sort cards by value (low to high) and then by suit
@@ -13,16 +35,18 @@ export const sortCards = (cards) => {
   if (!cards || cards.length === 0) return [];
 
   return [...cards].sort((a, b) => {
-    const valueA = CARD_VALUES[a.value] || 0;
-    const valueB = CARD_VALUES[b.value] || 0;
+    const aValid = isCardValidForSort(a);
+    const bValid = isCardValidForSort(b);
 
-    if (valueA !== valueB) {
-      return valueA - valueB;
-    }
+    if (!aValid && !bValid) return 0;
+    if (!aValid) return 1;
+    if (!bValid) return -1;
 
-    // If values are equal, sort by suit
-    const suitOrder = { 'Hearts': 0, 'Diamonds': 1, 'Clubs': 2, 'Spades': 3 };
-    return (suitOrder[a.suit] || 0) - (suitOrder[b.suit] || 0);
+    const valueA = getCardValue(a);
+    const valueB = getCardValue(b);
+
+    if (valueA !== valueB) return valueA - valueB;
+    return SUIT_ORDER[a.suit] - SUIT_ORDER[b.suit];
   });
 };
 
@@ -35,11 +59,15 @@ export const groupByValue = (cards) => {
   if (!cards || cards.length === 0) return {};
 
   return cards.reduce((groups, card) => {
-    const value = card.value;
-    if (!groups[value]) {
-      groups[value] = [];
+    if (!card || card.isFaceDown || card.faceDown) return groups;
+    const rank = getCardValue(card);
+    if (!rank) return groups;
+
+    const key = String(rank);
+    if (!groups[key]) {
+      groups[key] = [];
     }
-    groups[value].push(card);
+    groups[key].push(card);
     return groups;
   }, {});
 };
@@ -53,7 +81,9 @@ export const groupBySuit = (cards) => {
   if (!cards || cards.length === 0) return {};
 
   return cards.reduce((groups, card) => {
-    const suit = card.suit;
+    if (!card || card.isFaceDown || card.faceDown) return groups;
+    const suit = card?.suit;
+    if (SUIT_ORDER[suit] === undefined) return groups;
     if (!groups[suit]) {
       groups[suit] = [];
     }
@@ -97,15 +127,8 @@ export const getCardDisplayName = (card) => {
  */
 export const getCardShortName = (card) => {
   if (!card) return '';
-
-  const suitSymbols = {
-    'Hearts': '♥',
-    'Diamonds': '♦',
-    'Clubs': '♣',
-    'Spades': '♠'
-  };
-
-  return `${card.value}${suitSymbols[card.suit] || ''}`;
+  const face = card.value || '';
+  return `${face}${getSuitSymbol(card.suit)}`;
 };
 
 /**
@@ -114,8 +137,8 @@ export const getCardShortName = (card) => {
  * @returns {string} Color ('red' or 'black')
  */
 export const getCardColor = (card) => {
-  if (!card) return 'black';
-  return (card.suit === 'Hearts' || card.suit === 'Diamonds') ? 'red' : 'black';
+  const suit = card?.suit;
+  return SUIT_COLORS[suit] || SUIT_COLORS[SUITS.SPADES];
 };
 
 /**
@@ -162,17 +185,15 @@ export const getSuggestedPlays = (availableCards, centerPile) => {
   }
 
   const lastCard = centerPile[centerPile.length - 1];
-  const lastValue = CARD_VALUES[lastCard.value] || 0;
+  const lastValue = getCardValue(lastCard);
 
-  Object.entries(groups).forEach(([value, group]) => {
-    const playValue = CARD_VALUES[value] || 0;
-    
-    // Tens are always valid (wild)
-    if (value === '10') {
+  Object.values(groups).forEach((group) => {
+    const faceValue = group[0]?.value;
+    const playValue = getCardValue(group[0]);
+
+    if (faceValue === '10') {
       suggestions.push(group);
-    }
-    // Equal or lesser values are valid
-    else if (playValue <= lastValue) {
+    } else if (playValue && playValue <= lastValue) {
       suggestions.push(group);
     }
   });
