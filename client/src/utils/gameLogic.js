@@ -34,12 +34,12 @@ export const allSameValue = (cards) => {
 export const isValidPlay = (cardsToPlay, centerPile, afterPickup = false) => {
   // Must play at least one card
   if (!cardsToPlay || cardsToPlay.length === 0) {
-    return { valid: false, reason: 'Must play at least one card' };
+    return { valid: false, reason: 'No cards selected' };
   }
 
   // All cards must be the same value
   if (!allSameValue(cardsToPlay)) {
-    return { valid: false, reason: 'All cards must have the same value' };
+    return { valid: false, reason: 'Cards must have the same value' };
   }
 
   // After pickup, any card can be played
@@ -110,7 +110,8 @@ export const canPlayCards = (player, selectedCards, centerPile, afterPickup = fa
   // Check if all selected cards are available to the player
   const availableCards = [
     ...(player.hand || []),
-    ...(player.tableCardsUp || [])
+    ...(player.tableCardsUp || []),
+    ...(player.tableCardsDown || [])
   ];
 
   const allCardsAvailable = selectedCards.every(card => 
@@ -176,7 +177,7 @@ export const calculatePoints = (cards) => {
 
   return cards.reduce((total, card) => {
     const value = getCardValue(card);
-    // Tens are worth 20 points (or 25 as per rules)
+    // Tens are worth 20 points
     if (card.value === '10') return total + 20;
     return total + value;
   }, 0);

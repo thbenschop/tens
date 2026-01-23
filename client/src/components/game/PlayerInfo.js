@@ -11,10 +11,11 @@ function PlayerInfo({
   isCurrentPlayer = false, 
   showScores = false 
 }) {
-  const totalCards =
-    player.hand.length +
-    player.tableUp.length +
-    player.tableDown.length;
+  const handCount = player.hand?.length || 0;
+  const tableCardsUpCount = player.tableCardsUp?.length || 0;
+  const tableCardsDownCount = player.tableCardsDown?.length || 0;
+
+  const totalCards = handCount + tableCardsUpCount + tableCardsDownCount;
 
   return (
     <div
@@ -50,19 +51,19 @@ function PlayerInfo({
 
         {/* Breakdown of card locations */}
         <div className="flex items-center gap-2 text-xs">
-          {player.hand.length > 0 && (
+          {handCount > 0 && (
             <span title="Cards in hand">
-              🃏 {player.hand.length}
+              🃏 {handCount}
             </span>
           )}
-          {player.tableUp.length > 0 && (
+          {tableCardsUpCount > 0 && (
             <span title="Face-up table cards">
-              ⬆️ {player.tableUp.length}
+              ⬆️ {tableCardsUpCount}
             </span>
           )}
-          {player.tableDown.length > 0 && (
+          {tableCardsDownCount > 0 && (
             <span title="Face-down table cards">
-              ⬇️ {player.tableDown.length}
+              ⬇️ {tableCardsDownCount}
             </span>
           )}
         </div>
@@ -94,8 +95,8 @@ PlayerInfo.propTypes = {
     id: PropTypes.string.isRequired,
     name: PropTypes.string.isRequired,
     hand: PropTypes.array.isRequired,
-    tableUp: PropTypes.array.isRequired,
-    tableDown: PropTypes.array.isRequired,
+    tableCardsUp: PropTypes.array.isRequired,
+    tableCardsDown: PropTypes.array.isRequired,
     roundScore: PropTypes.number,
     totalScore: PropTypes.number,
   }).isRequired,

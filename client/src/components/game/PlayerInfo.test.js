@@ -11,10 +11,10 @@ describe('PlayerInfo', () => {
       { id: 'c1', suit: 'Hearts', value: '5' },
       { id: 'c2', suit: 'Clubs', value: 'K' },
     ],
-    tableUp: [
+    tableCardsUp: [
       { id: 'c3', suit: 'Diamonds', value: '9' },
     ],
-    tableDown: [
+    tableCardsDown: [
       { id: 'c4', suit: 'Spades', value: '2' },
       { id: 'c5', suit: 'Hearts', value: 'A' },
     ],
@@ -29,15 +29,15 @@ describe('PlayerInfo', () => {
 
   it('displays total card count', () => {
     render(<PlayerInfo player={mockPlayer} />);
-    // 2 hand + 1 tableUp + 2 tableDown = 5 total
+    // 2 hand + 1 tableCardsUp + 2 tableCardsDown = 5 total
     expect(screen.getByText('5')).toBeInTheDocument();
   });
 
   it('shows breakdown of card locations', () => {
     render(<PlayerInfo player={mockPlayer} />);
     expect(screen.getByText('🃏 2')).toBeInTheDocument(); // hand
-    expect(screen.getByText('⬆️ 1')).toBeInTheDocument(); // tableUp
-    expect(screen.getByText('⬇️ 2')).toBeInTheDocument(); // tableDown
+    expect(screen.getByText('⬆️ 1')).toBeInTheDocument(); // tableCardsUp
+    expect(screen.getByText('⬇️ 2')).toBeInTheDocument(); // tableCardsDown
   });
 
   it('highlights current turn player', () => {
@@ -71,8 +71,8 @@ describe('PlayerInfo', () => {
     const emptyPlayer = {
       ...mockPlayer,
       hand: [],
-      tableUp: [],
-      tableDown: [],
+      tableCardsUp: [],
+      tableCardsDown: [],
     };
     
     render(<PlayerInfo player={emptyPlayer} />);
@@ -96,14 +96,14 @@ describe('PlayerInfo', () => {
   it('only shows card location icons for non-empty locations', () => {
     const playerOnlyHand = {
       ...mockPlayer,
-      tableUp: [],
-      tableDown: [],
+      tableCardsUp: [],
+      tableCardsDown: [],
     };
     
     render(<PlayerInfo player={playerOnlyHand} />);
     
     expect(screen.getByText('🃏 2')).toBeInTheDocument(); // hand
-    expect(screen.queryByText(/⬆️/)).not.toBeInTheDocument(); // no tableUp
-    expect(screen.queryByText(/⬇️/)).not.toBeInTheDocument(); // no tableDown
+    expect(screen.queryByText(/⬆️/)).not.toBeInTheDocument(); // no tableCardsUp
+    expect(screen.queryByText(/⬇️/)).not.toBeInTheDocument(); // no tableCardsDown
   });
 });
