@@ -24,6 +24,9 @@ const (
 	TypePlayCards    = "PLAY_CARDS"
 	TypeFlipFaceDown = "FLIP_FACE_DOWN"
 	TypeGameUpdate   = "GAME_UPDATE"
+	TypeRoundEnd     = "ROUND_END"
+	TypeNextRound    = "NEXT_ROUND"
+	TypeRoundStarted = "ROUND_STARTED"
 	TypeError        = "ERROR"
 )
 
@@ -118,6 +121,8 @@ func (h *RoomHandler) handleMessage(conn *websocket.Conn, msgType string, msg ma
 		h.handlePlayCards(conn, msg)
 	case TypeFlipFaceDown:
 		h.handleFlipFaceDown(conn, msg)
+	case TypeNextRound:
+		h.handleNextRound(conn, msg)
 	default:
 		h.sendError(conn, "Unknown message type")
 	}

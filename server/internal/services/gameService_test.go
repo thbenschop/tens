@@ -515,11 +515,14 @@ func TestFlipFaceDown(t *testing.T) {
 	t.Run("Valid flip plays card", func(t *testing.T) {
 		players := []*models.Player{
 			{
-				ID:             "player-1",
-				Name:           "Player 1",
-				Hand:           []*models.Card{},
-				TableCardsUp:   []*models.Card{},
-				TableCardsDown: []*models.Card{{ID: "fd-1", Suit: "Hearts", Value: "3"}},
+				ID:           "player-1",
+				Name:         "Player 1",
+				Hand:         []*models.Card{},
+				TableCardsUp: []*models.Card{},
+				TableCardsDown: []*models.Card{
+					{ID: "fd-1", Suit: "Hearts", Value: "3"},
+					{ID: "fd-2", Suit: "Clubs", Value: "4"},
+				},
 			},
 			{ID: "player-2", Name: "Player 2"},
 			{ID: "player-3", Name: "Player 3"},
@@ -542,7 +545,7 @@ func TestFlipFaceDown(t *testing.T) {
 			t.Error("Expected flipped card to be on center pile")
 		}
 		if game.CurrentPlayerIndex != 1 {
-			t.Error("Expected turn to advance after valid flip")
+			t.Error("Expected turn to advance after valid flip (player still has cards)")
 		}
 	})
 
@@ -632,6 +635,261 @@ func TestFlipFaceDown(t *testing.T) {
 		}
 		if game.CurrentPlayerIndex != 0 {
 			t.Error("Expected turn to stay with player after wild ten (additional turn)")
+		}
+	})
+}
+
+func TestCheckWinCondition(t *testing.T) {
+	t.Run("Player with no cards wins", func(t *testing.T) {
+		player := &models.Player{
+			ID:             "p1",
+			Hand:           []*models.Card{},
+			TableCardsUp:   []*models.Card{},
+			TableCardsDown: []*models.Card{},
+		}
+
+		hasWon := CheckWinCondition(player)
+		if !hasWon {
+			t.Error("Expected player with 0 cards to win")
+		}
+	})
+
+	t.Run("Player with hand cards has not won", func(t *testing.T) {
+		player := &models.Player{
+			ID:             "p1",
+			Hand:           []*models.Card{{ID: "c1", Value: "5"}},
+			TableCardsUp:   []*models.Card{},
+			TableCardsDown: []*models.Card{},
+		}
+
+		hasWon := CheckWinCondition(player)
+		if hasWon {
+			t.Error("Expected player with cards in hand to not win")
+		}
+	})
+
+	t.Run("Player with face-up cards has not won", func(t *testing.T) {
+		player := &models.Player{
+			ID:             "p1",
+			Hand:           []*models.Card{},
+			TableCardsUp:   []*models.Card{{ID: "c1", Value: "5"}},
+			TableCardsDown: []*models.Card{},
+		}
+
+		hasWon := CheckWinCondition(player)
+		if hasWon {
+			t.Error("Expected player with face-up cards to not win")
+		}
+	})
+
+	t.Run("Player with face-down cards has not won", func(t *testing.T) {
+		player := &models.Player{
+			ID:             "p1",
+			Hand:           []*models.Card{},
+			TableCardsUp:   []*models.Card{},
+			TableCardsDown: []*models.Card{{ID: "c1", Value: "5"}},
+		}
+
+		hasWon := CheckWinCondition(player)
+		if hasWon {
+			t.Error("Expected player with face-down cards to not win")
+		}
+	})
+}
+
+func TestEndRound(t *testing.T) {
+	t.Run("Winner gets 0 points", func(t *testing.T) {
+		players := []*models.Player{
+			{
+				ID:             "p1",
+				Name:           "Player 1",
+				Hand:           []*models.Card{},
+				TableCardsUp:   []*models.Card{},
+				TableCardsDown: []*models.Card{},
+				RoundScore:     0,
+				TotalScore:     0,
+			},
+			{
+				ID:   "p2",
+				Name: "Player 2",
+				Hand: []*models.Card{
+					{Value: "5"},
+					{Value: "7"},
+				},
+				TableCardsUp:   []*models.Card{},
+				TableCardsDown: []*models.Card{},
+				RoundScore:     0,
+				TotalScore:     0,
+			},
+		}
+
+		game := models.NewGame("game-1", "ABCD", players)
+		game.IsStarted = true
+
+		EndRound(game, "p1")
+
+		// Winner should have 0 points
+		if players[0].RoundScore != 0 {
+			t.Errorf("Winner round score = %d, expected 0", players[0].RoundScore)
+		}
+
+		// Other player should have points from remaining cards
+		if players[1].RoundScore != 12 { // 5 + 7
+			t.Errorf("Player 2 round score = %d, expected 12", players[1].RoundScore)
+		}
+	})
+
+	t.Run("Cumulative score is updated", func(t *testing.T) {
+		players := []*models.Player{
+			{
+				ID:             "p1",
+				Name:           "Player 1",
+				Hand:           []*models.Card{},
+				TableCardsUp:   []*models.Card{},
+				TableCardsDown: []*models.Card{},
+				RoundScore:     0,
+				TotalScore:     10, // Previous rounds
+			},
+			{
+				ID:   "p2",
+				Name: "Player 2",
+				Hand: []*models.Card{
+					{Value: "3"},
+				},
+				TableCardsUp:   []*models.Card{},
+				TableCardsDown: []*models.Card{},
+				RoundScore:     0,
+				TotalScore:     20, // Previous rounds
+			},
+		}
+
+		game := models.NewGame("game-1", "ABCD", players)
+		game.IsStarted = true
+
+		EndRound(game, "p1")
+
+		// Winner cumulative stays at 10
+		if players[0].TotalScore != 10 {
+			t.Errorf("Winner total score = %d, expected 10", players[0].TotalScore)
+		}
+
+		// Other player cumulative increases by 3
+		if players[1].TotalScore != 23 { // 20 + 3
+			t.Errorf("Player 2 total score = %d, expected 23", players[1].TotalScore)
+		}
+	})
+
+	t.Run("All remaining cards are scored", func(t *testing.T) {
+		players := []*models.Player{
+			{
+				ID:             "p1",
+				Name:           "Player 1",
+				Hand:           []*models.Card{},
+				TableCardsUp:   []*models.Card{},
+				TableCardsDown: []*models.Card{},
+			},
+			{
+				ID:   "p2",
+				Name: "Player 2",
+				Hand: []*models.Card{
+					{Value: "2"},
+				},
+				TableCardsUp: []*models.Card{
+					{Value: "K"},
+				},
+				TableCardsDown: []*models.Card{
+					{Value: "10"},
+				},
+			},
+		}
+
+		game := models.NewGame("game-1", "ABCD", players)
+		game.IsStarted = true
+
+		EndRound(game, "p1")
+
+		// Player 2: 2 + 13 + 25 = 40
+		if players[1].RoundScore != 40 {
+			t.Errorf("Player 2 round score = %d, expected 40", players[1].RoundScore)
+		}
+	})
+}
+
+func TestStartNextRound(t *testing.T) {
+	t.Run("Dealer rotates clockwise", func(t *testing.T) {
+		players := []*models.Player{
+			{ID: "p1", Name: "Player 1"},
+			{ID: "p2", Name: "Player 2"},
+			{ID: "p3", Name: "Player 3"},
+		}
+
+		game := models.NewGame("game-1", "ABCD", players)
+		game.IsStarted = true
+		game.DealerIndex = 0
+
+		StartNextRound(game)
+
+		if game.DealerIndex != 1 {
+			t.Errorf("Dealer index = %d, expected 1", game.DealerIndex)
+		}
+
+		if game.CurrentPlayerIndex != 2 { // Left of dealer starts play
+			t.Errorf("Current player index = %d, expected 2", game.CurrentPlayerIndex)
+		}
+	})
+
+	t.Run("Dealer wraps around", func(t *testing.T) {
+		players := []*models.Player{
+			{ID: "p1", Name: "Player 1"},
+			{ID: "p2", Name: "Player 2"},
+			{ID: "p3", Name: "Player 3"},
+		}
+
+		game := models.NewGame("game-1", "ABCD", players)
+		game.IsStarted = true
+		game.DealerIndex = 2 // Last player
+
+		StartNextRound(game)
+
+		if game.DealerIndex != 0 {
+			t.Errorf("Dealer index = %d, expected 0 (wrapped)", game.DealerIndex)
+		}
+	})
+
+	t.Run("Round number increments", func(t *testing.T) {
+		players := []*models.Player{
+			{ID: "p1", Name: "Player 1"},
+			{ID: "p2", Name: "Player 2"},
+			{ID: "p3", Name: "Player 3"},
+		}
+
+		game := models.NewGame("game-1", "ABCD", players)
+		game.IsStarted = true
+		game.Round = 1
+
+		StartNextRound(game)
+
+		if game.Round != 2 {
+			t.Errorf("Round = %d, expected 2", game.Round)
+		}
+	})
+
+	t.Run("Round scores reset", func(t *testing.T) {
+		players := []*models.Player{
+			{ID: "p1", Name: "Player 1", RoundScore: 10},
+			{ID: "p2", Name: "Player 2", RoundScore: 20},
+			{ID: "p3", Name: "Player 3", RoundScore: 15},
+		}
+
+		game := models.NewGame("game-1", "ABCD", players)
+		game.IsStarted = true
+
+		StartNextRound(game)
+
+		for i, player := range game.Players {
+			if player.RoundScore != 0 {
+				t.Errorf("Player %d round score = %d, expected 0", i, player.RoundScore)
+			}
 		}
 	})
 }

@@ -16,6 +16,8 @@ type Player struct {
 	Hand           []*Card         `json:"hand"`
 	TableCardsUp   []*Card         `json:"tableCardsUp"`
 	TableCardsDown []*Card         `json:"tableCardsDown"`
+	RoundScore     int             `json:"roundScore"` // Points for current round
+	TotalScore     int             `json:"totalScore"` // Cumulative score across all rounds
 }
 
 // Room represents a game room

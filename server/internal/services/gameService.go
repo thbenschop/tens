@@ -142,13 +142,26 @@ func PlayCards(game *models.Game, playerID string, cardIDs []string, afterPickup
 	// Check for wild tens (clear deck)
 	if len(cardsToPlay) > 0 && cardsToPlay[0].Value == "10" {
 		ClearDeck(game)
+		// Check if player has won after clearing
+		if CheckWinCondition(player) {
+			return nil
+		}
 		return nil
 	}
 
 	// Check for set (4+ same value)
 	if utils.DetectSet(game.CenterPile) {
 		ClearDeck(game)
+		// Check if player has won after clearing
+		if CheckWinCondition(player) {
+			return nil
+		}
 		return nil
+	}
+
+	// Check if player has won (played all cards)
+	if CheckWinCondition(player) {
+		return nil // Game will handle round end
 	}
 
 	// Normal play - advance to next player
@@ -232,9 +245,21 @@ func FlipFaceDown(game *models.Game, playerID string, cardID string) error {
 		// Check for wild tens or sets
 		if flippedCard.Value == "10" {
 			ClearDeck(game)
+			// Check if player has won after clearing
+			if CheckWinCondition(player) {
+				return nil
+			}
 		} else if utils.DetectSet(game.CenterPile) {
 			ClearDeck(game)
+			// Check if player has won after clearing
+			if CheckWinCondition(player) {
+				return nil
+			}
 		} else {
+			// Check if player has won
+			if CheckWinCondition(player) {
+				return nil
+			}
 			// Normal play - advance to next player
 			game.NextPlayer()
 		}
@@ -247,4 +272,48 @@ func FlipFaceDown(game *models.Game, playerID string, cardID string) error {
 	}
 
 	return nil
+}
+
+// CheckWinCondition checks if a player has won (0 cards remaining)
+func CheckWinCondition(player *models.Player) bool {
+	totalCards := len(player.Hand) + len(player.TableCardsUp) + len(player.TableCardsDown)
+	return totalCards == 0
+}
+
+// EndRound calculates scores for all players and updates cumulative totals
+// Winner receives 0 points for the round
+func EndRound(game *models.Game, winnerID string) {
+	for _, player := range game.Players {
+		if player.ID == winnerID {
+			// Winner gets 0 points
+			player.RoundScore = 0
+		} else {
+			// Calculate score from remaining cards
+			player.RoundScore = utils.CalculatePlayerScore(player)
+		}
+
+		// Add round score to cumulative total
+		player.TotalScore += player.RoundScore
+	}
+}
+
+// StartNextRound prepares the game for the next round
+// Rotates dealer clockwise, resets round scores, and deals new cards
+func StartNextRound(game *models.Game) {
+	// Increment round number
+	game.Round++
+
+	// Rotate dealer clockwise
+	game.DealerIndex = (game.DealerIndex + 1) % len(game.Players)
+
+	// Reset round scores
+	for _, player := range game.Players {
+		player.RoundScore = 0
+	}
+
+	// Initialize new round with fresh cards
+	InitializeRound(game)
+
+	// Set current player to left of dealer (after dealing)
+	game.CurrentPlayerIndex = (game.DealerIndex + 1) % len(game.Players)
 }

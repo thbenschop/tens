@@ -42,6 +42,6 @@ SCORING
 
 The player who goes out receives zero points for that round. The other players will be awarded points based on values of the cards remaining in their hand (including those on the table, both face up and face down).
 
-Numbered cards are their face value. A King is 13 points, Queen is 12, Jack is 11, and an Ace 1 point. Tens held at the end are 25 points!
+Numbered cards are their face value. A King is 13 points, Queen is 12, Jack is 11, and an Ace 1 point. Tens held at the end are 20 points!
 
 After each player is awarded their points for the round, the deal moves clockwise to the next player and the game continues. Players can pre-designate how many rounds constitute an entire game or whether to play until someone reaches a certain high score. At the end, the player with the lowest total score is the winner.

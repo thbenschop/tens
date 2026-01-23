@@ -71,8 +71,23 @@ func (h *RoomHandler) handlePlayCards(conn *websocket.Conn, msg map[string]inter
 		return
 	}
 
-	// Broadcast game state to all players in room
-	h.broadcastGameState(connInfo.RoomCode, game)
+	// Check for winner
+	var winner *models.Player
+	for _, player := range game.Players {
+		if services.CheckWinCondition(player) {
+			winner = player
+			break
+		}
+	}
+
+	if winner != nil {
+		// End the round
+		services.EndRound(game, winner.ID)
+		h.broadcastRoundEnd(connInfo.RoomCode, game, winner)
+	} else {
+		// Broadcast game state to all players in room
+		h.broadcastGameState(connInfo.RoomCode, game)
+	}
 }
 
 // HandleFlipFaceDown processes FLIP_FACE_DOWN WebSocket message
@@ -110,8 +125,23 @@ func (h *RoomHandler) handleFlipFaceDown(conn *websocket.Conn, msg map[string]in
 		return
 	}
 
-	// Broadcast game state to all players in room
-	h.broadcastGameState(connInfo.RoomCode, game)
+	// Check for winner
+	var winner *models.Player
+	for _, player := range game.Players {
+		if services.CheckWinCondition(player) {
+			winner = player
+			break
+		}
+	}
+
+	if winner != nil {
+		// End the round
+		services.EndRound(game, winner.ID)
+		h.broadcastRoundEnd(connInfo.RoomCode, game, winner)
+	} else {
+		// Broadcast game state to all players in room
+		h.broadcastGameState(connInfo.RoomCode, game)
+	}
 }
 
 // broadcastGameState broadcasts the current game state to all players in the room
@@ -122,4 +152,56 @@ func (h *RoomHandler) broadcastGameState(roomCode string, game *models.Game) {
 	}
 
 	h.broadcastToRoom(roomCode, response, nil)
+}
+
+// broadcastRoundEnd broadcasts round end with scores to all players
+func (h *RoomHandler) broadcastRoundEnd(roomCode string, game *models.Game, winner *models.Player) {
+	response := map[string]interface{}{
+		"type":   "ROUND_END",
+		"winner": winner,
+		"scores": game.Players,
+		"round":  game.Round,
+		"game":   h.serializeGame(game),
+	}
+
+	h.broadcastToRoom(roomCode, response, nil)
+}
+
+// handleNextRound processes NEXT_ROUND WebSocket message
+func (h *RoomHandler) handleNextRound(conn *websocket.Conn, msg map[string]interface{}) {
+	// Get connection info
+	connInfo, ok := h.connInfo[conn]
+	if !ok {
+		h.sendError(conn, "Connection not registered")
+		return
+	}
+
+	room := h.roomService.GetRoom(connInfo.RoomCode)
+	if room == nil {
+		h.sendError(conn, "Room not found")
+		return
+	}
+
+	// Only host can start next round
+	if room.HostID != connInfo.PlayerID {
+		h.sendError(conn, "Only host can start next round")
+		return
+	}
+
+	game, ok := h.games[connInfo.RoomCode]
+	if !ok || game == nil {
+		h.sendError(conn, "Game not started")
+		return
+	}
+
+	// Start next round
+	services.StartNextRound(game)
+
+	// Broadcast new round started
+	response := map[string]interface{}{
+		"type": "ROUND_STARTED",
+		"game": h.serializeGame(game),
+	}
+
+	h.broadcastToRoom(connInfo.RoomCode, response, nil)
 }
