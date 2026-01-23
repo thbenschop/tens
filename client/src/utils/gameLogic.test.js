@@ -1,4 +1,4 @@
-import { isValidPlay, canPlayCards } from './gameLogic';
+import { isValidPlay, canPlayCards, detectSet, calculatePoints } from './gameLogic';
 import { SUITS } from './constants';
 
 const makeCard = (id, value, suit = SUITS.CLUBS) => ({ id, value, suit });
@@ -52,6 +52,43 @@ describe('isValidPlay', () => {
   test('after pickup bypass allows any rank against the pile', () => {
     const result = isValidPlay([makeCard('king', 'K')], centerWith('3'), true);
     expect(result).toEqual({ valid: true, reason: '' });
+  });
+});
+
+describe('calculatePoints', () => {
+  test('returns 0 for empty or missing hands', () => {
+    expect(calculatePoints([])).toBe(0);
+    expect(calculatePoints(undefined)).toBe(0);
+  });
+
+  test('sums card values while counting tens as twenty', () => {
+    const hand = [
+      makeCard('low', '2'),
+      makeCard('tenner', '10'),
+      makeCard('face', 'K'),
+    ];
+
+    // 2 + 20 + 13 = 35
+    expect(calculatePoints(hand)).toBe(35);
+  });
+});
+
+describe('detectSet', () => {
+  const pileFromValues = (values) => values.map((value, idx) => makeCard(`c${idx}`, value));
+
+  test('detects when the top four cards share the same value', () => {
+    const centerPile = pileFromValues(['3', '3', '3', '3']);
+    expect(detectSet(centerPile)).toBe(true);
+  });
+
+  test('ignores runs shorter than four of the same value', () => {
+    const centerPile = pileFromValues(['5', '5', '5']);
+    expect(detectSet(centerPile)).toBe(false);
+  });
+
+  test('ignores non-contiguous matches beneath the top card sequence', () => {
+    const centerPile = pileFromValues(['7', '7', '7', '8', '7']);
+    expect(detectSet(centerPile)).toBe(false);
   });
 });
 
