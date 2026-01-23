@@ -14,6 +14,7 @@ function useGameState() {
     room: null,
     isHost: false,
     gameStarted: false,
+    roundResult: null,
     error: null,
   });
 
@@ -61,6 +62,26 @@ function useGameState() {
         setGameState((prev) => ({
           ...prev,
           gameStarted: true,
+          room: data.room,
+        }));
+        break;
+
+      case 'ROUND_END':
+        setGameState((prev) => ({
+          ...prev,
+          roundResult: {
+            winner: data.winner,
+            players: data.players,
+            roundNumber: data.roundNumber,
+          },
+          room: data.room,
+        }));
+        break;
+
+      case 'ROUND_STARTED':
+        setGameState((prev) => ({
+          ...prev,
+          roundResult: null,
           room: data.room,
         }));
         break;
@@ -145,6 +166,16 @@ function useGameState() {
     }));
   }, []);
 
+  const startNextRound = useCallback(() => {
+    if (gameState.roomCode && gameState.playerId && gameState.isHost) {
+      sendMessage({
+        type: 'NEXT_ROUND',
+        roomCode: gameState.roomCode,
+        playerId: gameState.playerId,
+      });
+    }
+  }, [gameState.roomCode, gameState.playerId, gameState.isHost, sendMessage]);
+
   return {
     ...gameState,
     isConnected,
@@ -153,6 +184,7 @@ function useGameState() {
     joinRoom,
     leaveRoom,
     startGame,
+    startNextRound,
     clearError,
   };
 }

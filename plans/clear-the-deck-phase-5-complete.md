@@ -1,6 +1,6 @@
 ## Phase 5 Complete: Win Detection & Scoring System
 
-Implemented comprehensive win detection, scoring calculation, round end logic, and dealer rotation using Test-Driven Development. All 36 new tests passing, with correct scoring rules (tens worth 25 points) and proper win detection timing integrated into the game flow.
+Implemented comprehensive win detection, scoring calculation, round end logic, and dealer rotation using Test-Driven Development. Created frontend score display components with full test coverage. All 55 tests passing (36 backend + 19 frontend).
 
 **Files created/changed:**
 - server/internal/utils/scorer.go (NEW)
@@ -10,6 +10,12 @@ Implemented comprehensive win detection, scoring calculation, round end logic, a
 - server/internal/services/gameService_test.go
 - server/internal/handlers/game.go
 - server/internal/handlers/room.go
+- client/src/components/game/ScoreBoard.js (NEW)
+- client/src/components/game/ScoreBoard.test.js (NEW)
+- client/src/components/game/PlayerInfo.js (NEW)
+- client/src/components/game/PlayerInfo.test.js (NEW)
+- client/src/utils/constants.js
+- client/src/hooks/useGameState.js
 
 **Functions created/changed:**
 - scorer.GetCardPointValue() - Returns point value for cards (A=1, 2-9=face, 10=25, J=11, Q=12, K=13)
@@ -21,6 +27,10 @@ Implemented comprehensive win detection, scoring calculation, round end logic, a
 - gameService.FlipFaceDown() - Integrated win checking after deck clears
 - handlers.broadcastRoundEnd() - Sends ROUND_END message with winner, scores, round number
 - handlers.handleNextRound() - Host-only function to start next round
+- ScoreBoard component - Displays round results with sortable player scores and next round button
+- PlayerInfo component - Shows player status with card counts, turn indicator, and optional scores
+- useGameState.handleMessage() - Added ROUND_END and ROUND_STARTED message handlers
+- useGameState.startNextRound() - New function to trigger next round via WebSocket
 
 **Tests created/changed:**
 - TestGetCardPointValue_AllValues (scorer_test.go) - Verifies all 13 card point values
@@ -34,16 +44,20 @@ Implemented comprehensive win detection, scoring calculation, round end logic, a
 - TestStartNextRound (gameService_test.go) - 4 subtests for dealer rotation and round management
 - Updated TestPlayCards (gameService_test.go) - Adjusted for win detection integration
 - Updated TestFlipFaceDown (gameService_test.go) - Adjusted for win detection integration
+- ScoreBoard.test.js - 10 tests covering rendering, sorting, host/non-host views, and interactions
+- PlayerInfo.test.js - 9 tests covering display, card counts, turn highlighting, and score visibility
 
 **Review Status:** APPROVED
 
 **Git Commit Message:**
-feat: Implement win detection and scoring system
+```
+feat: Add frontend score display components and round end UI
 
-- Add scorer utility with correct point values (tens=25 points)
-- Implement win condition checking (0 cards remaining)
-- Add round end logic with winner scoring (0 points) and cumulative totals
-- Implement dealer rotation (clockwise) for next round
-- Integrate win detection into PlayCards and FlipFaceDown handlers
-- Add WebSocket handlers for round end and next round start (ROUND_END, NEXT_ROUND, ROUND_STARTED)
-- All 36 new tests passing with full backend test suite
+- Create ScoreBoard component to display round results with player scores sorted by total
+- Create PlayerInfo component to show player status, card counts, and scores
+- Add ROUND_END and ROUND_STARTED message handlers to useGameState
+- Add startNextRound function for host to trigger next round
+- Add NEXT_ROUND and ROUND_STARTED to MESSAGE_TYPES constants
+- All 19 new frontend tests passing (10 ScoreBoard + 9 PlayerInfo)
+- Use JavaScript default parameters instead of defaultProps for React 18+ compatibility
+```
