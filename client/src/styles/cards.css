@@ -1,0 +1,80 @@
+.card-selector {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.playing-card {
+  width: 4rem;
+  height: 5.6rem;
+  border-radius: 0.5rem;
+  border: 1px solid #d4d4d8;
+  background: #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+}
+
+.playing-card.card-up:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.16);
+}
+
+.card-selected {
+  border-color: #0ea5e9;
+  box-shadow: 0 8px 18px rgba(14, 165, 233, 0.35);
+  transform: translateY(-4px);
+}
+
+.card-up .card-face,
+.card-down .card-back {
+  width: 100%;
+  height: 100%;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.card-face {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #1f2937;
+}
+
+.card-value {
+  font-size: 1.25rem;
+}
+
+.card-back {
+  background: repeating-linear-gradient(
+    45deg,
+    #1f2937,
+    #1f2937 6px,
+    #111827 6px,
+    #111827 12px
+  );
+  color: #f3f4f6;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.card-down {
+  border-color: #1f2937;
+}
+
+.card-up.text-red-600 .card-face {
+  color: #dc2626;
+}
+
+.card-up.text-black .card-face {
+  color: #111827;
+}
