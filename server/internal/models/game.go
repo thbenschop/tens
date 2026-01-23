@@ -12,6 +12,7 @@ type Game struct {
 	Players            []*Player `json:"players"`
 	DiscardPile        []*Card   `json:"discardPile"`
 	CenterPile         []*Card   `json:"centerPile"`
+	AfterPickup        bool      `json:"afterPickup"`
 	CurrentPlayerIndex int       `json:"currentPlayerIndex"`
 	DealerIndex        int       `json:"dealerIndex"`
 	Round              int       `json:"round"`

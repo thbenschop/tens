@@ -84,7 +84,7 @@ func IsValidPlay(cardsToPlay []*models.Card, centerPile []*models.Card, afterPic
 		return true, ""
 	}
 
-	return false, "card value too high"
+	return false, "Card value too high"
 }
 
 // DetectSet checks if the last 4 or more cards in the center pile are all the same value

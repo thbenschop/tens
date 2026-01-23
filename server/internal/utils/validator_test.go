@@ -115,7 +115,7 @@ func TestIsValidPlay(t *testing.T) {
 			},
 			afterPickup:    false,
 			expectedValid:  false,
-			expectedReason: "card value too high",
+			expectedReason: "Card value too high",
 		},
 		{
 			name: "Wild tens are always valid",
@@ -187,7 +187,7 @@ func TestIsValidPlay(t *testing.T) {
 			},
 			afterPickup:    false,
 			expectedValid:  false,
-			expectedReason: "card value too high",
+			expectedReason: "Card value too high",
 		},
 	}
 
@@ -198,6 +198,7 @@ func TestIsValidPlay(t *testing.T) {
 				t.Errorf("IsValidPlay() valid = %v, expected %v", valid, tt.expectedValid)
 			}
 			if reason != tt.expectedReason {
+				t.Errorf("IsValidPlay() reason = %q, expected %q", reason, tt.expectedReason)
 			}
 		})
 	}

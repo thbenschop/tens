@@ -39,6 +39,9 @@ func StartGame(players []*models.Player) *models.Game {
 func InitializeRound(game *models.Game) {
 	playerCount := len(game.Players)
 
+	// Reset after-pickup state at the start of every round
+	game.AfterPickup = false
+
 	// Create and shuffle new deck
 	deck := utils.CreateDeck(playerCount)
 	utils.ShuffleDeck(deck)
@@ -112,11 +115,25 @@ func PlayCards(game *models.Game, playerID string, cardIDs []string, afterPickup
 		return fmt.Errorf("all cards must have the same value")
 	}
 
+	// Determine if this play follows a pickup (allows any value)
+	effectiveAfterPickup := afterPickup || game.AfterPickup
+
 	// Validate play is legal
-	valid, reason := utils.IsValidPlay(cardsToPlay, game.CenterPile, afterPickup)
+	valid, reason := utils.IsValidPlay(cardsToPlay, game.CenterPile, effectiveAfterPickup)
 	if !valid {
+		if reason == "Card value too high" {
+			// Over-value play forces pickup instead of failing the turn
+			if err := PickupPile(game, playerID); err != nil {
+				return err
+			}
+			game.AfterPickup = true
+			return nil
+		}
 		return fmt.Errorf("invalid play: %s", reason)
 	}
+
+	// Valid play consumes after-pickup state
+	game.AfterPickup = false
 
 	// Remove cards from player's hand/table
 	for _, cardID := range cardIDs {
@@ -194,6 +211,7 @@ func PickupPile(game *models.Game, playerID string) error {
 	// Move center pile to player's hand
 	player.Hand = append(player.Hand, game.CenterPile...)
 	game.CenterPile = []*models.Card{}
+	game.AfterPickup = true
 	// Turn stays with current player (additional turn)
 	return nil
 }

@@ -160,13 +160,13 @@ func TestPlayCards(t *testing.T) {
 		}
 	})
 
-	t.Run("Invalid play returns error", func(t *testing.T) {
+	t.Run("Invalid play returns error when card missing", func(t *testing.T) {
 		players := []*models.Player{
 			{
 				ID:   "player-1",
 				Name: "Player 1",
 				Hand: []*models.Card{
-					{ID: "card-1", Suit: "Hearts", Value: "K"},
+					{ID: "card-1", Suit: "Hearts", Value: "5"},
 				},
 				TableCardsUp:   []*models.Card{},
 				TableCardsDown: []*models.Card{},
@@ -178,15 +178,12 @@ func TestPlayCards(t *testing.T) {
 		game := models.NewGame("game-1", "ABCD", players)
 		game.IsStarted = true
 		game.CurrentPlayerIndex = 0
-		game.CenterPile = []*models.Card{
-			{ID: "center-1", Suit: "Diamonds", Value: "5"},
-		}
 
-		cardIDs := []string{"card-1"}
+		cardIDs := []string{"card-does-not-exist"}
 		err := PlayCards(game, "player-1", cardIDs, false)
 
 		if err == nil {
-			t.Fatal("PlayCards should return error for invalid play")
+			t.Fatal("PlayCards should return error when card is not in hand or table")
 		}
 	})
 
@@ -344,6 +341,49 @@ func TestPlayCards(t *testing.T) {
 		if game.CurrentPlayerIndex != initialPlayer {
 			t.Errorf("Current player changed from %d to %d, should stay same after clear",
 				initialPlayer, game.CurrentPlayerIndex)
+		}
+	})
+
+	t.Run("Over-value play forces pickup and keeps turn", func(t *testing.T) {
+		players := []*models.Player{
+			{
+				ID:   "player-1",
+				Name: "Player 1",
+				Hand: []*models.Card{
+					{ID: "card-1", Suit: "Hearts", Value: "9"},
+				},
+				TableCardsUp:   []*models.Card{},
+				TableCardsDown: []*models.Card{},
+			},
+			{ID: "player-2", Name: "Player 2"},
+			{ID: "player-3", Name: "Player 3"},
+		}
+
+		game := models.NewGame("game-1", "ABCD", players)
+		game.IsStarted = true
+		game.CurrentPlayerIndex = 0
+		game.CenterPile = []*models.Card{
+			{ID: "center-1", Suit: "Diamonds", Value: "5"},
+			{ID: "center-2", Suit: "Clubs", Value: "6"},
+		}
+
+		initialTurn := game.CurrentPlayerIndex
+		err := PlayCards(game, "player-1", []string{"card-1"}, false)
+		if err != nil {
+			t.Fatalf("PlayCards returned error: %v", err)
+		}
+
+		if len(players[0].Hand) != 3 {
+			t.Fatalf("Player hand has %d cards, expected 3 after pickup", len(players[0].Hand))
+		}
+		if len(game.CenterPile) != 0 {
+			t.Fatalf("Center pile has %d cards, expected 0 after pickup", len(game.CenterPile))
+		}
+		if game.CurrentPlayerIndex != initialTurn {
+			t.Fatalf("Current player index changed to %d, expected to remain %d", game.CurrentPlayerIndex, initialTurn)
+		}
+		if !game.AfterPickup {
+			t.Fatal("AfterPickup flag should be set after forced pickup")
 		}
 	})
 }
@@ -890,6 +930,24 @@ func TestStartNextRound(t *testing.T) {
 			if player.RoundScore != 0 {
 				t.Errorf("Player %d round score = %d, expected 0", i, player.RoundScore)
 			}
+		}
+	})
+
+	t.Run("AfterPickup resets for new round", func(t *testing.T) {
+		players := []*models.Player{
+			{ID: "p1", Name: "Player 1"},
+			{ID: "p2", Name: "Player 2"},
+			{ID: "p3", Name: "Player 3"},
+		}
+
+		game := models.NewGame("game-1", "ABCD", players)
+		game.IsStarted = true
+		game.AfterPickup = true
+
+		StartNextRound(game)
+
+		if game.AfterPickup {
+			t.Errorf("AfterPickup should reset at the start of a round")
 		}
 	})
 }
