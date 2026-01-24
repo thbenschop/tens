@@ -1,0 +1,6 @@
+1. Fix vulnerabilities raised by `npm install`
+2. Add a debug/testing mode to allow the host to add synthetic players to the lobby, and then control the actions of all players. In debug mode, no other users should be able to connect. This type of lobby should be created using a new "create testing lobby" button.
+3. When a higher card than the current stack low value is played, the higher card (and all those matching) should be left in the stack. The turn is then over. However if there are enough cards to create a set (4+ identical card values) then the stack should be cleared, and the player will get another turn. Update the `GAME_RULES.md` to reflect this behavior if needed.
+4. Connection issue popups show up on lobby screens, even when a valid connection is made and the "connected" status light is on.
+5. Overhaul of the gameplay interface, it should look more like a poker table with players sitting in a circle. Visualize the face down + face up cards on the table as the face up cards partially covering the face down
+6. 

@@ -78,3 +78,16 @@
 .card-up.text-black .card-face {
   color: #111827;
 }
+
+.playing-card.card-placeholder {
+  cursor: default;
+  border-style: dashed;
+  border-color: #dc2626;
+  background: #fff1f2;
+  color: #dc2626;
+}
+
+.card-placeholder-value {
+  font-weight: 700;
+  font-size: 1.1rem;
+}

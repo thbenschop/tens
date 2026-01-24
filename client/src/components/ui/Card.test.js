@@ -29,6 +29,17 @@ describe('Card', () => {
     expect(screen.queryByText('A♥')).not.toBeInTheDocument();
   });
 
+  it.each([null, undefined])('renders an X placeholder when card is %s', (missingCard) => {
+    render(<Card card={missingCard} />);
+
+    const placeholder = screen.getByTestId('card-placeholder');
+
+    expect(placeholder).toBeInTheDocument();
+    expect(placeholder).toHaveTextContent('X');
+    expect(screen.queryByTestId('card-face')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('card-back')).not.toBeInTheDocument();
+  });
+
   it('calls onSelect on single tap', () => {
     const onSelect = jest.fn();
     render(<Card card={baseCard} onSelect={onSelect} />);

@@ -17,12 +17,17 @@ function useWebSocket(url, options = {}) {
   const [lastMessage, setLastMessage] = useState(null);
   const [connectionAttempts, setConnectionAttempts] = useState(0);
 
+  const { onMessage, onOpen, onClose, onError } = options;
   const wsRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
   const reconnectAttemptsRef = useRef(0);
   const shouldReconnectRef = useRef(true);
   const reconnectScheduledRef = useRef(false);
-  const { onMessage, onOpen, onClose, onError } = options;
+  const handlersRef = useRef({ onMessage, onOpen, onClose, onError });
+
+  useEffect(() => {
+    handlersRef.current = { onMessage, onOpen, onClose, onError };
+  }, [onMessage, onOpen, onClose, onError]);
 
   const clearReconnectTimer = () => {
     if (reconnectTimeoutRef.current) {
@@ -49,7 +54,8 @@ function useWebSocket(url, options = {}) {
         setIsConnected(true);
         setIsConnecting(false);
         setError(null);
-        if (onOpen) onOpen(event);
+        const handler = handlersRef.current.onOpen;
+        if (handler) handler(event);
       };
 
       const scheduleReconnect = () => {
@@ -67,14 +73,16 @@ function useWebSocket(url, options = {}) {
       ws.onclose = (event) => {
         reconnectScheduledRef.current = false;
         setIsConnected(false);
-        if (onClose) onClose(event);
+        const handler = handlersRef.current.onClose;
+        if (handler) handler(event);
         scheduleReconnect();
       };
 
       ws.onerror = (event) => {
         setError(new Error('WebSocket connection error'));
         setIsConnected(false);
-        if (onError) onError(event);
+        const handler = handlersRef.current.onError;
+        if (handler) handler(event);
         scheduleReconnect();
       };
 
@@ -82,7 +90,8 @@ function useWebSocket(url, options = {}) {
         try {
           const data = JSON.parse(event.data);
           setLastMessage(data);
-          if (onMessage) onMessage(data);
+          const handler = handlersRef.current.onMessage;
+          if (handler) handler(data);
         } catch (err) {
           console.error('Failed to parse WebSocket message:', err);
         }
@@ -102,7 +111,7 @@ function useWebSocket(url, options = {}) {
         wsRef.current.close();
       }
     };
-  }, [url, onMessage, onOpen, onClose, onError]);
+  }, [url]);
 
   const sendMessage = useCallback((data) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {

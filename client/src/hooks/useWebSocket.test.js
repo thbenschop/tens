@@ -50,9 +50,9 @@ describe('useWebSocket', () => {
   afterEach(() => {
     act(() => {
       MockWebSocket.instances.forEach((ws) => ws.close());
+      jest.runOnlyPendingTimers();
     });
     MockWebSocket.instances = [];
-    jest.runOnlyPendingTimers();
     jest.useRealTimers();
   });
 

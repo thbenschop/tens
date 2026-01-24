@@ -7,12 +7,6 @@ const isFaceDown = (card, faceDown) => faceDown || card?.isFaceDown || card?.fac
 const SINGLE_TAP_DELAY_MS = 400;
 
 function Card({ card, selected = false, faceDown = false, onSelect, onPlay, dataTestId = 'card' }) {
-  if (!card) return null;
-
-  const faceDownStatus = isFaceDown(card, faceDown);
-  const suitSymbol = getSuitSymbol(card.suit);
-  const shortLabel = `${card.value}${suitSymbol}`;
-  const colorClass = faceDownStatus ? '' : getCardColor(card);
   const clickTimeoutRef = useRef();
 
   useEffect(() => {
@@ -22,6 +16,19 @@ function Card({ card, selected = false, faceDown = false, onSelect, onPlay, data
       }
     };
   }, []);
+
+  if (!card) {
+    return (
+      <div className="playing-card card-placeholder" data-testid="card-placeholder" aria-label="Empty card slot">
+        <span className="card-placeholder-value">X</span>
+      </div>
+    );
+  }
+
+  const faceDownStatus = isFaceDown(card, faceDown);
+  const suitSymbol = getSuitSymbol(card.suit);
+  const shortLabel = `${card.value}${suitSymbol}`;
+  const colorClass = faceDownStatus ? '' : getCardColor(card);
 
   const handleClick = (event) => {
     event.preventDefault();
@@ -79,13 +86,16 @@ function Card({ card, selected = false, faceDown = false, onSelect, onPlay, data
 }
 
 Card.propTypes = {
-  card: PropTypes.shape({
-    id: PropTypes.string.isRequired,
-    value: PropTypes.string.isRequired,
-    suit: PropTypes.string.isRequired,
-    isFaceDown: PropTypes.bool,
-    faceDown: PropTypes.bool,
-  }).isRequired,
+  card: PropTypes.oneOfType([
+    PropTypes.shape({
+      id: PropTypes.string.isRequired,
+      value: PropTypes.string.isRequired,
+      suit: PropTypes.string.isRequired,
+      isFaceDown: PropTypes.bool,
+      faceDown: PropTypes.bool,
+    }),
+    PropTypes.oneOf([null]),
+  ]),
   selected: PropTypes.bool,
   faceDown: PropTypes.bool,
   onSelect: PropTypes.func,
