@@ -9,13 +9,16 @@ function TableCards({
   cardsDown = [],
   onFaceUpSelectionChange,
   onPlayFaceUp,
+  onFlipFaceDown,
 }) {
+  const safeCardsUp = cardsUp.filter(Boolean);
+
   return (
     <div className="table-cards" data-testid="table-cards">
       <div className="table-section">
         <div className="section-label">Face Up</div>
         <CardSelector
-          cards={cardsUp}
+          cards={safeCardsUp}
           onSelectionChange={onFaceUpSelectionChange}
           onPlay={onPlayFaceUp}
           cardTestId="table-card-up"
@@ -25,9 +28,26 @@ function TableCards({
       <div className="table-section">
         <div className="section-label">Face Down</div>
         <div className="table-row">
-          {cardsDown.map((card) => (
-            <Card key={card.id} card={card} faceDown dataTestId="table-card-down" />
-          ))}
+          {cardsDown.map((card, index) => {
+            const hasFaceUpPair = Boolean(cardsUp[index]);
+
+            const faceDownHandlers = hasFaceUpPair
+              ? {}
+              : {
+                  onSelect: onFlipFaceDown,
+                  onPlay: onFlipFaceDown,
+                };
+
+            return (
+              <Card
+                key={card.id}
+                card={card}
+                faceDown
+                dataTestId="table-card-down"
+                {...faceDownHandlers}
+              />
+            );
+          })}
         </div>
       </div>
     </div>
@@ -51,6 +71,7 @@ TableCards.propTypes = {
   ),
   onFaceUpSelectionChange: PropTypes.func,
   onPlayFaceUp: PropTypes.func,
+  onFlipFaceDown: PropTypes.func,
 };
 
 export default TableCards;

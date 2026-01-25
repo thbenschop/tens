@@ -131,6 +131,65 @@ describe('GameBoard', () => {
     expect(mockFlipFaceDown).toHaveBeenCalledWith('d1');
   });
 
+  it('flips a face-down card when its paired face-up slot is empty', () => {
+    renderBoard({
+      canFlip: true,
+      tableCardsUp: [null],
+      tableCardsDown: [makeCard('d1')],
+    });
+
+    const downCard = screen.getByTestId('table-card-down');
+
+    act(() => {
+      fireEvent.click(downCard);
+      jest.runAllTimers();
+    });
+
+    expect(mockFlipFaceDown).toHaveBeenCalledTimes(1);
+    expect(mockFlipFaceDown).toHaveBeenCalledWith('d1');
+  });
+
+  it('blocks flipping a face-down card when its paired face-up card still exists', () => {
+    renderBoard({
+      canFlip: true,
+      tableCardsUp: [makeCard('u1')],
+      tableCardsDown: [makeCard('d1')],
+    });
+
+    const downCard = screen.getByTestId('table-card-down');
+
+    act(() => {
+      fireEvent.click(downCard);
+      jest.runAllTimers();
+    });
+
+    expect(mockFlipFaceDown).not.toHaveBeenCalled();
+  });
+
+  it('allows selecting an extra face-down card without a matching face-up slot', () => {
+    renderBoard({
+      canFlip: true,
+      tableCardsUp: [makeCard('u1')],
+      tableCardsDown: [makeCard('d1'), makeCard('d2')],
+    });
+
+    const downCards = screen.getAllByTestId('table-card-down');
+
+    act(() => {
+      fireEvent.click(downCards[0]);
+      jest.runAllTimers();
+    });
+    expect(mockFlipFaceDown).not.toHaveBeenCalled();
+
+    act(() => {
+      fireEvent.click(downCards[1]);
+      jest.runAllTimers();
+    });
+
+    expect(mockFlipFaceDown).toHaveBeenCalledTimes(1);
+    expect(mockFlipFaceDown).toHaveBeenCalledWith('d2');
+  });
+
   it('shows inline error banner when an error is present', () => {
     renderBoard({ error: 'Not your turn' });
 

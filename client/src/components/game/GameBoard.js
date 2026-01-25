@@ -77,6 +77,13 @@ function GameBoard({ state }) {
     }
   };
 
+  const handleFaceDownSelection = (card) => {
+    if (!isPlayerTurn || !canFlip || !card?.id) return;
+    if (flipFaceDown) {
+      flipFaceDown(card.id);
+    }
+  };
+
   const handleFlip = () => {
     if (!isPlayerTurn || !canFlip || tableCardsDown.length === 0) return;
     if (flipFaceDown) {
@@ -170,6 +177,7 @@ function GameBoard({ state }) {
                 cardsDown={tableCardsDown}
                 onFaceUpSelectionChange={handleTableSelectionChange}
                 onPlayFaceUp={handlePlayFromTable}
+                onFlipFaceDown={handleFaceDownSelection}
               />
             </div>
 

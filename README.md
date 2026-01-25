@@ -48,9 +48,10 @@ go test ./...
 
 ### Client Tests
 
+Windows:
 ```bash
 cd client
-npm test -- --watch=false
+$env:CI="true"; npm test --
 ```
 
 ## Environment Variables
