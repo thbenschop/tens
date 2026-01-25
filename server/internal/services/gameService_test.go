@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/thben/clearthedeck/internal/models"
@@ -160,6 +161,57 @@ func TestPlayCards(t *testing.T) {
 		}
 	})
 
+	t.Run("Face-up over-value play allowed while hand still has cards", func(t *testing.T) {
+		players := []*models.Player{
+			{
+				ID:   "player-1",
+				Name: "Player 1",
+				Hand: []*models.Card{
+					{ID: "hand-low", Suit: "Clubs", Value: "3"},
+					{ID: "hand-high", Suit: "Hearts", Value: "K"},
+				},
+				TableCardsUp: []*models.Card{
+					{ID: "up-1", Suit: "Spades", Value: "9"},
+				},
+				TableCardsDown: []*models.Card{},
+			},
+			{ID: "player-2", Name: "Player 2"},
+			{ID: "player-3", Name: "Player 3"},
+		}
+
+		game := models.NewGame("game-1", "ABCD", players)
+		game.IsStarted = true
+		game.CurrentPlayerIndex = 0
+		game.CenterPile = []*models.Card{
+			{ID: "center-1", Suit: "Diamonds", Value: "4"},
+			{ID: "center-2", Suit: "Clubs", Value: "5"},
+		}
+
+		err := PlayCards(game, "player-1", []string{"up-1"}, false)
+		if err != nil {
+			t.Fatalf("PlayCards returned error: %v", err)
+		}
+
+		if len(game.CenterPile) != 3 {
+			t.Fatalf("Center pile has %d cards, expected appended face-up card without pickup", len(game.CenterPile))
+		}
+		if game.CenterPile[len(game.CenterPile)-1].ID != "up-1" {
+			t.Fatalf("Top card = %s, expected played face-up card", game.CenterPile[len(game.CenterPile)-1].ID)
+		}
+		if game.AfterPickup {
+			t.Fatal("AfterPickup should remain false for successful face-up play")
+		}
+		if len(players[0].TableCardsUp) != 0 {
+			t.Fatalf("TableCardsUp has %d cards, expected played card to be removed", len(players[0].TableCardsUp))
+		}
+		if len(players[0].Hand) != 2 {
+			t.Fatalf("Hand count = %d, expected hand to stay unchanged by face-up play", len(players[0].Hand))
+		}
+		if game.CurrentPlayerIndex != 1 {
+			t.Fatalf("Current player index = %d, expected turn to advance after non-clearing play", game.CurrentPlayerIndex)
+		}
+	})
+
 	t.Run("Invalid play returns error when card missing", func(t *testing.T) {
 		players := []*models.Player{
 			{
@@ -308,6 +360,14 @@ func TestPlayCards(t *testing.T) {
 		if game.CurrentPlayerIndex != 0 {
 			t.Errorf("Current player index is %d, expected 0 (same player)", game.CurrentPlayerIndex)
 		}
+
+		provider, ok := any(game).(interface{ GetLastClearMessage() string })
+		if !ok {
+			t.Fatalf("Game should expose a clear message for UI consumption")
+		}
+		if provider.GetLastClearMessage() != "Cleared by 10!" {
+			t.Fatalf("Clear message = %q, expected %q", provider.GetLastClearMessage(), "Cleared by 10!")
+		}
 	})
 
 	t.Run("Turn stays with player after clear", func(t *testing.T) {
@@ -344,7 +404,7 @@ func TestPlayCards(t *testing.T) {
 		}
 	})
 
-	t.Run("Over-value play forces pickup and keeps turn", func(t *testing.T) {
+	t.Run("Over-value play stays on pile and ends turn", func(t *testing.T) {
 		players := []*models.Player{
 			{
 				ID:   "player-1",
@@ -367,23 +427,122 @@ func TestPlayCards(t *testing.T) {
 			{ID: "center-2", Suit: "Clubs", Value: "6"},
 		}
 
-		initialTurn := game.CurrentPlayerIndex
 		err := PlayCards(game, "player-1", []string{"card-1"}, false)
 		if err != nil {
 			t.Fatalf("PlayCards returned error: %v", err)
 		}
 
-		if len(players[0].Hand) != 3 {
-			t.Fatalf("Player hand has %d cards, expected 3 after pickup", len(players[0].Hand))
+		if len(game.CenterPile) != 3 {
+			t.Fatalf("Center pile has %d cards, expected 3 after over-value play stays", len(game.CenterPile))
 		}
+		if len(players[0].Hand) != 0 {
+			t.Fatalf("Player hand has %d cards, expected over-value play to leave hand empty", len(players[0].Hand))
+		}
+		if game.CurrentPlayerIndex != 1 {
+			t.Fatalf("Current player index is %d, expected turn to advance to next player", game.CurrentPlayerIndex)
+		}
+		if game.AfterPickup {
+			t.Fatal("AfterPickup should not be set when over-value play stays on stack")
+		}
+
+		provider, ok := any(game).(interface{ GetLastClearMessage() string })
+		if ok {
+			if provider.GetLastClearMessage() != "" {
+				t.Fatalf("Clear message = %q, expected empty for non-clearing over-value play", provider.GetLastClearMessage())
+			}
+		} else {
+			t.Fatalf("Game should expose a clear message for UI consumption")
+		}
+	})
+
+	t.Run("Over-value set clears, keeps turn, and records message", func(t *testing.T) {
+		players := []*models.Player{
+			{
+				ID:   "player-1",
+				Name: "Player 1",
+				Hand: []*models.Card{
+					{ID: "card-1", Suit: "Hearts", Value: "9"},
+					{ID: "card-2", Suit: "Diamonds", Value: "9"},
+					{ID: "card-3", Suit: "Clubs", Value: "9"},
+					{ID: "card-4", Suit: "Spades", Value: "9"},
+				},
+				TableCardsUp:   []*models.Card{},
+				TableCardsDown: []*models.Card{},
+			},
+			{ID: "player-2", Name: "Player 2"},
+			{ID: "player-3", Name: "Player 3"},
+		}
+
+		game := models.NewGame("game-1", "ABCD", players)
+		game.IsStarted = true
+		game.CurrentPlayerIndex = 0
+		game.CenterPile = []*models.Card{
+			{ID: "center-1", Suit: "Diamonds", Value: "5"},
+		}
+
+		err := PlayCards(game, "player-1", []string{"card-1", "card-2", "card-3", "card-4"}, false)
+		if err != nil {
+			t.Fatalf("PlayCards returned error: %v", err)
+		}
+
 		if len(game.CenterPile) != 0 {
-			t.Fatalf("Center pile has %d cards, expected 0 after pickup", len(game.CenterPile))
+			t.Fatalf("Center pile has %d cards, expected clear after over-value set", len(game.CenterPile))
 		}
-		if game.CurrentPlayerIndex != initialTurn {
-			t.Fatalf("Current player index changed to %d, expected to remain %d", game.CurrentPlayerIndex, initialTurn)
+		if game.CurrentPlayerIndex != 0 {
+			t.Fatalf("Current player index is %d, expected to keep turn after clearing", game.CurrentPlayerIndex)
 		}
-		if !game.AfterPickup {
-			t.Fatal("AfterPickup flag should be set after forced pickup")
+
+		provider, ok := any(game).(interface{ GetLastClearMessage() string })
+		if !ok {
+			t.Fatalf("Game should expose a clear message for UI consumption")
+		}
+		if provider.GetLastClearMessage() != "Cleared by 4 9s!" {
+			t.Fatalf("Clear message = %q, expected %q", provider.GetLastClearMessage(), "Cleared by 4 9s!")
+		}
+	})
+
+	t.Run("Over-value five-card set clears with pluralized message", func(t *testing.T) {
+		players := []*models.Player{
+			{
+				ID:   "player-1",
+				Name: "Player 1",
+				Hand: []*models.Card{
+					{ID: "card-1", Suit: "Hearts", Value: "7"},
+					{ID: "card-2", Suit: "Diamonds", Value: "7"},
+					{ID: "card-3", Suit: "Clubs", Value: "7"},
+					{ID: "card-4", Suit: "Spades", Value: "7"},
+					{ID: "card-5", Suit: "Hearts", Value: "7"},
+				},
+				TableCardsUp:   []*models.Card{},
+				TableCardsDown: []*models.Card{},
+			},
+			{ID: "player-2", Name: "Player 2"},
+			{ID: "player-3", Name: "Player 3"},
+		}
+
+		game := models.NewGame("game-1", "ABCD", players)
+		game.IsStarted = true
+		game.CurrentPlayerIndex = 0
+		game.CenterPile = []*models.Card{{ID: "center-1", Suit: "Diamonds", Value: "3"}}
+
+		err := PlayCards(game, "player-1", []string{"card-1", "card-2", "card-3", "card-4", "card-5"}, false)
+		if err != nil {
+			t.Fatalf("PlayCards returned error: %v", err)
+		}
+
+		if len(game.CenterPile) != 0 {
+			t.Fatalf("Center pile has %d cards, expected clear after 5-card set", len(game.CenterPile))
+		}
+		if game.CurrentPlayerIndex != 0 {
+			t.Fatalf("Current player index is %d, expected to keep turn after 5-card clear", game.CurrentPlayerIndex)
+		}
+
+		provider, ok := any(game).(interface{ GetLastClearMessage() string })
+		if !ok {
+			t.Fatalf("Game should expose a clear message for UI consumption")
+		}
+		if provider.GetLastClearMessage() != "Cleared by 5 7s!" {
+			t.Fatalf("Clear message = %q, expected %q", provider.GetLastClearMessage(), "Cleared by 5 7s!")
 		}
 	})
 }
@@ -644,6 +803,42 @@ func TestFlipFaceDown(t *testing.T) {
 		}
 		if game.CurrentPlayerIndex != 0 {
 			t.Error("Expected turn to stay with player after invalid flip")
+		}
+	})
+
+	t.Run("Flip is rejected when paired face-up still on table", func(t *testing.T) {
+		players := []*models.Player{
+			{
+				ID:   "player-1",
+				Name: "Player 1",
+				Hand: []*models.Card{},
+				TableCardsUp: []*models.Card{
+					{ID: "up-locked", Suit: "Spades", Value: "6"},
+				},
+				TableCardsDown: []*models.Card{
+					{ID: "fd-locked", Suit: "Hearts", Value: "6"},
+				},
+			},
+			{ID: "player-2", Name: "Player 2"},
+			{ID: "player-3", Name: "Player 3"},
+		}
+
+		game := models.NewGame("game-1", "ABCD", players)
+		game.IsStarted = true
+		game.CurrentPlayerIndex = 0
+
+		err := FlipFaceDown(game, "player-1", "fd-locked")
+		if err == nil {
+			t.Fatalf("Expected error when paired face-up remains on table")
+		}
+		if !strings.Contains(err.Error(), "paired face-up") {
+			t.Fatalf("Error message %q should mention paired face-up restriction", err.Error())
+		}
+		if len(game.CenterPile) != 0 {
+			t.Fatalf("Center pile has %d cards, expected 0 after rejected flip", len(game.CenterPile))
+		}
+		if len(players[0].TableCardsDown) != 1 {
+			t.Fatalf("Face-down card count = %d, expected card to remain when flip rejected", len(players[0].TableCardsDown))
 		}
 	})
 

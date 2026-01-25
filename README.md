@@ -50,7 +50,7 @@ go test ./...
 
 ```bash
 cd client
-npm test -- --watcAhAll=false
+npm test -- --watch=false
 ```
 
 ## Environment Variables

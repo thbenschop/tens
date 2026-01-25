@@ -42,32 +42,55 @@ export const isValidPlay = (cardsToPlay, centerPile, afterPickup = false) => {
     return { valid: false, reason: 'Cards must have the same value' };
   }
 
-  // After pickup, any card can be played
-  if (afterPickup) {
-    return { valid: true, reason: '' };
-  }
-
-  // Empty center pile, any card can be played
-  if (!centerPile || centerPile.length === 0) {
-    return { valid: true, reason: '' };
-  }
-
-  // Wild tens are always valid
+  // Wild tens are always valid and clear the pile
   if (cardsToPlay[0].value === '10') {
+    return {
+      valid: true,
+      reason: '',
+      clear: true,
+      keepTurn: true,
+      clearMessage: 'Cleared by 10!',
+    };
+  }
+
+  // Over-value plays are allowed; detect clearing sets when adding to pile
+  const combinedPile = [...(centerPile || []), ...cardsToPlay];
+
+  const lastCombinedCard = combinedPile[combinedPile.length - 1];
+  let setCount = 1;
+
+  for (let i = combinedPile.length - 2; i >= 0; i--) {
+    if (combinedPile[i].value === lastCombinedCard.value) {
+      setCount++;
+    } else {
+      break;
+    }
+  }
+
+  if (setCount >= 4) {
+    return {
+      valid: true,
+      reason: '',
+      clear: true,
+      keepTurn: true,
+      clearMessage: `Cleared by ${setCount} ${lastCombinedCard.value}s!`,
+    };
+  }
+
+  // Empty pile or after-pickup can play anything
+  if (!centerPile || centerPile.length === 0 || afterPickup) {
     return { valid: true, reason: '' };
   }
 
-  // Get the last card in center pile
-  const lastCard = centerPile[centerPile.length - 1];
-  const lastValue = getCardValue(lastCard);
+  // Equal-or-lower is allowed; higher stays on the stack and ends the turn
+  const topValue = getCardValue(centerPile[centerPile.length - 1]);
   const playValue = getCardValue(cardsToPlay[0]);
-
-  // Valid if equal or lesser
-  if (playValue <= lastValue) {
+  const isOverValue = playValue > topValue;
+  if (isOverValue || playValue <= topValue) {
     return { valid: true, reason: '' };
   }
 
-  return { valid: false, reason: 'Card value too high' };
+  return { valid: true, reason: '' };
 };
 
 /**
@@ -124,7 +147,31 @@ export const canPlayCards = (player, selectedCards, centerPile, afterPickup = fa
 
   // Validate the play
   const validation = isValidPlay(selectedCards, centerPile, afterPickup);
-  return { canPlay: validation.valid, reason: validation.reason };
+
+  let reason = validation.reason;
+
+  const selectedFromFaceUp = selectedCards.some((card) =>
+    (player.tableCardsUp || []).some((up) => up.id === card.id)
+  );
+  const hasCardsInHand = (player.hand || []).length > 0;
+
+  if (
+    validation.valid &&
+    selectedFromFaceUp &&
+    hasCardsInHand &&
+    centerPile &&
+    centerPile.length > 0
+  ) {
+    const lastPileValue = centerPile[centerPile.length - 1];
+    const topValue = getCardValue(lastPileValue);
+    const playValue = getCardValue(selectedCards[0]);
+
+    if (playValue > topValue) {
+      reason = 'Face-up card playable even with cards in hand';
+    }
+  }
+
+  return { canPlay: validation.valid, reason };
 };
 
 /**

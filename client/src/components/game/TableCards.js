@@ -1,18 +1,25 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import Card from '../ui/Card';
+import CardSelector from '../ui/CardSelector';
 import '../../styles/game.css';
 
-function TableCards({ cardsUp = [], cardsDown = [] }) {
+function TableCards({
+  cardsUp = [],
+  cardsDown = [],
+  onFaceUpSelectionChange,
+  onPlayFaceUp,
+}) {
   return (
     <div className="table-cards" data-testid="table-cards">
       <div className="table-section">
         <div className="section-label">Face Up</div>
-        <div className="table-row">
-          {cardsUp.map((card) => (
-            <Card key={card.id} card={card} dataTestId="table-card-up" />
-          ))}
-        </div>
+        <CardSelector
+          cards={cardsUp}
+          onSelectionChange={onFaceUpSelectionChange}
+          onPlay={onPlayFaceUp}
+          cardTestId="table-card-up"
+        />
       </div>
 
       <div className="table-section">
@@ -42,6 +49,8 @@ TableCards.propTypes = {
       suit: PropTypes.string.isRequired,
     })
   ),
+  onFaceUpSelectionChange: PropTypes.func,
+  onPlayFaceUp: PropTypes.func,
 };
 
 export default TableCards;

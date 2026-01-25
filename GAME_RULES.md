@@ -23,20 +23,24 @@ Choose one player to be the dealer. The dealer shuffles the cards and deals four
 
 PLAY
 
-The player to the left of the dealer begins by playing as many cards of the same value as desired from among his hand and his face-up cards in the center of the table (i.e., two Kings, three nines, five threes, etc.). A face-down card cannot be played while it is still covered by a face-up card. See NOTE below.
+The player to the left of the dealer begins by playing as many cards of the same value as desired from among their hand or face-up cards in the center of the table (i.e., two Kings, three nines, five threes, etc.). Face-up cards are always playable just like cards in hand. A face-down card cannot be played while it is still covered by a face-up card. See NOTE below.
 
-If the player drops a set (four or more cards of same value) he “Clears the Deck,” placing those cards face down on the discard pile and taking an additional turn. The play continues clockwise and the next player must play cards of EQUAL or LESSER value than the player before him. If this player creates a set of four or more of the same value by adding to the previously played cards, he “Clears the Deck,” placing the entire center stack on the discard pile, then takes an additional turn.
+If the player drops a set (four or more cards of the same value) they “Clear the Deck,” removing the entire center pile and taking an additional turn. The play continues clockwise and the next player must play cards of EQUAL or LESSER value than the player before them. If this player creates a set of four or more of the same value by adding to the previously played cards, they “Clear the Deck,” removing the entire center stack, then take an additional turn.
 
-If a player plays a card of GREATER value than the previous player, he must take the entire center stack into his hand, then receives an additional turn.
+If a player plays a card of GREATER value than the previous player, the play remains on the center stack (no pickup) and the player’s turn ends. However, if that over-value play results in four or more matching cards showing on top of the center pile, the pile is cleared and the same player keeps their turn.
 
-NOTE: A player can only play a face down card when it is no longer covered by a face up card. At no time can a player look at his face down card until he chooses to play it by flipping it over. Once revealed, that card must be played. Additional matching cards from the player’s hand or face up cards can be played along with it. As in all other play, if it exceeds the value of the previously played card the player must pick up the center stack. If it is of equal or lesser value than the previously played card, the game continues. If it creates a set, the player will “Clear the Deck” and receive an additional turn.
+NOTE: Each face-down card sits underneath a paired face-up card. Once that paired face-up card has been played, its face-down card may be flipped and auto-played at any time. At no time can a player look at their face-down card until it is flipped. Once revealed, that card must be played, and any matching cards from hand or remaining face-up cards may optionally be played with it.
 
 Play continues until someone “goes out” by playing all 20 of their cards. At that point the round ends.
 
 NOTE: During play the number of cards in each player’s hand must remain visible or be shown upon request. Also, cards played in the center must remain visible and can be examined by any player at any time. 
 WILD
 
-Tens are considered wild cards, in that they can be played to “Clear the Deck” at any time with the player receiving an additional turn. However, any tens held in a player’s hand when play ends count as 20 points against that player.
+Tens are considered wild cards. They can be played at any time to immediately “Clear the Deck,” and the player keeps their turn. However, any tens held in a player’s hand when play ends count as 20 points against that player.
+
+CLEARING MESSAGE
+
+Whenever the center pile clears, display a message: “Cleared by <number_of> <card_rank>!” (for sets) or “Cleared by 10!” (for wild tens).
 
 SCORING
 

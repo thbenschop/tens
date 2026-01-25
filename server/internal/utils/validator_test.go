@@ -106,7 +106,7 @@ func TestIsValidPlay(t *testing.T) {
 			expectedReason: "",
 		},
 		{
-			name: "Greater value is invalid",
+			name: "Greater value is valid and should stay on stack",
 			cardsToPlay: []*models.Card{
 				{ID: "1", Suit: "Hearts", Value: "9"},
 			},
@@ -114,8 +114,8 @@ func TestIsValidPlay(t *testing.T) {
 				{ID: "2", Suit: "Diamonds", Value: "5"},
 			},
 			afterPickup:    false,
-			expectedValid:  false,
-			expectedReason: "Card value too high",
+			expectedValid:  true,
+			expectedReason: "",
 		},
 		{
 			name: "Wild tens are always valid",

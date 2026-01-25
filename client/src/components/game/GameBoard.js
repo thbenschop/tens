@@ -26,27 +26,51 @@ function GameBoard({ state }) {
     startNextRound,
   } = state || {};
 
-  const [selectedCards, setSelectedCards] = useState([]);
+  const [selectedHandCards, setSelectedHandCards] = useState([]);
+  const [selectedTableCards, setSelectedTableCards] = useState([]);
   const safeStartNextRound = startNextRound || (() => {});
+
+  const combinedSelectedCards = useMemo(() => {
+    const seen = new Set();
+    return [...selectedHandCards, ...selectedTableCards].filter((card) => {
+      if (!card || !card.id || seen.has(card.id)) return false;
+      seen.add(card.id);
+      return true;
+    });
+  }, [selectedHandCards, selectedTableCards]);
 
   const otherPlayers = useMemo(
     () => players.filter((player) => player.id !== playerId),
     [players, playerId]
   );
 
-  const handleSelectionChange = (cards) => {
-    setSelectedCards(cards);
+  const handleHandSelectionChange = (cards) => {
+    setSelectedHandCards(cards);
+  };
+
+  const handleTableSelectionChange = (cards) => {
+    setSelectedTableCards(cards);
   };
 
   const handlePlaySelected = () => {
-    if (!isPlayerTurn || selectedCards.length === 0) return;
+    if (!isPlayerTurn || combinedSelectedCards.length === 0) return;
     if (sendPlayCards) {
-      sendPlayCards(selectedCards);
+      sendPlayCards(combinedSelectedCards);
     }
   };
 
   const handlePlayFromHand = (cards) => {
-    setSelectedCards(cards);
+    setSelectedHandCards(cards);
+    setSelectedTableCards([]);
+    if (!isPlayerTurn || cards.length === 0) return;
+    if (sendPlayCards) {
+      sendPlayCards(cards);
+    }
+  };
+
+  const handlePlayFromTable = (cards) => {
+    setSelectedTableCards(cards);
+    setSelectedHandCards([]);
     if (!isPlayerTurn || cards.length === 0) return;
     if (sendPlayCards) {
       sendPlayCards(cards);
@@ -61,7 +85,7 @@ function GameBoard({ state }) {
   };
 
   const turnText = isPlayerTurn ? 'Your turn' : 'Waiting for other players';
-  const playDisabled = !isPlayerTurn || selectedCards.length === 0;
+  const playDisabled = !isPlayerTurn || combinedSelectedCards.length === 0;
   const flipDisabled = !isPlayerTurn || !canFlip || tableCardsDown.length === 0;
 
   return (
@@ -141,17 +165,22 @@ function GameBoard({ state }) {
                   </button>
                 </div>
               </div>
-              <TableCards cardsUp={tableCardsUp} cardsDown={tableCardsDown} />
+              <TableCards
+                cardsUp={tableCardsUp}
+                cardsDown={tableCardsDown}
+                onFaceUpSelectionChange={handleTableSelectionChange}
+                onPlayFaceUp={handlePlayFromTable}
+              />
             </div>
 
             <div className="bg-white shadow-sm rounded-lg p-4 space-y-2">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-gray-800">Your Hand</h3>
-                <span className="text-xs text-gray-500">{selectedCards.length} selected</span>
+                <span className="text-xs text-gray-500">{combinedSelectedCards.length} selected</span>
               </div>
               <PlayerHand
                 cards={hand}
-                onSelectionChange={handleSelectionChange}
+                onSelectionChange={handleHandSelectionChange}
                 onPlay={handlePlayFromHand}
               />
             </div>

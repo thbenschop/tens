@@ -31,14 +31,20 @@ describe('isValidPlay', () => {
     expect(result).toEqual({ valid: true, reason: '' });
   });
 
-  test('always allows tens regardless of the top pile rank', () => {
+  test('always allows tens regardless of the top pile rank and clears', () => {
     const result = isValidPlay([makeCard('ten', '10')], centerWith('2'));
-    expect(result).toEqual({ valid: true, reason: '' });
+    expect(result).toEqual({
+      valid: true,
+      reason: '',
+      clear: true,
+      keepTurn: true,
+      clearMessage: 'Cleared by 10!',
+    });
   });
 
-  test('rejects plays that exceed the top pile rank when not tens', () => {
+  test('allows plays that exceed the top pile rank (over-value stays on stack)', () => {
     const result = isValidPlay([makeCard('high', '7')], centerWith('5'));
-    expect(result).toEqual({ valid: false, reason: 'Card value too high' });
+    expect(result).toEqual({ valid: true, reason: '' });
   });
 
   test('allows plays that are equal to or lower than the top pile rank', () => {
@@ -117,9 +123,82 @@ describe('canPlayCards', () => {
     expect(fromTableDown).toEqual({ canPlay: true, reason: '' });
   });
 
-  test('propagates validation failures such as playing too high', () => {
+  test('allows over-value plays from hand without clearing', () => {
     const player = buildPlayer();
     const result = canPlayCards(player, [player.hand[0]], centerWith('3'));
-    expect(result).toEqual({ canPlay: false, reason: 'Card value too high' });
+    expect(result).toEqual({ canPlay: true, reason: '' });
+  });
+
+  test('supports playing from face-up cards even when hand still has cards', () => {
+    const player = buildPlayer();
+    const result = canPlayCards(player, [player.tableCardsUp[0]], centerWith('Q'));
+    expect(result).toEqual({ canPlay: true, reason: '' });
+  });
+
+  test('explains that a face-up card remains playable even while hand has cards', () => {
+    const player = buildPlayer();
+    const result = canPlayCards(player, [player.tableCardsUp[0]], centerWith('3'));
+
+    expect(result).toEqual({
+      canPlay: true,
+      reason: 'Face-up card playable even with cards in hand',
+    });
+  });
+});
+
+describe('over-value single-card play', () => {
+  test('permits non-clearing over-value plays and keeps clear metadata empty', () => {
+    const player = buildPlayer();
+    const centerPile = centerWith('4');
+    const selectedCards = [player.hand[0]]; // K over 4 should stay on stack
+
+    const validation = isValidPlay(selectedCards, centerPile);
+
+    expect(validation.valid).toBe(true);
+    expect(validation.reason).toBe('');
+    expect(validation.clear).toBeFalsy();
+    expect(validation.keepTurn).toBeFalsy();
+    expect(validation.clearMessage).toBeFalsy();
+
+    const playCheck = canPlayCards(player, selectedCards, centerPile);
+    expect(playCheck).toEqual({ canPlay: true, reason: '' });
+  });
+});
+
+describe('over-value set resolution for UI messaging', () => {
+  test('records clear message and turn retention for a 4-card over-value set', () => {
+    const centerPile = centerWith('4');
+    const cards = [
+      makeCard('ov-1', '9'),
+      makeCard('ov-2', '9'),
+      makeCard('ov-3', '9'),
+      makeCard('ov-4', '9'),
+    ];
+
+    const result = isValidPlay(cards, centerPile);
+
+    expect(result).toEqual({
+      valid: true,
+      reason: '',
+      clear: true,
+      keepTurn: true,
+      clearMessage: 'Cleared by 4 9s!',
+    });
+  });
+
+  test('formats clear message with card count for 5-card sets', () => {
+    const centerPile = centerWith('6');
+    const cards = [
+      makeCard('ov-1', '7'),
+      makeCard('ov-2', '7'),
+      makeCard('ov-3', '7'),
+      makeCard('ov-4', '7'),
+      makeCard('ov-5', '7'),
+    ];
+
+    const result = isValidPlay(cards, centerPile);
+
+    expect(result.clearMessage).toBe('Cleared by 5 7s!');
+    expect(result.keepTurn).toBe(true);
   });
 });
