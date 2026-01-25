@@ -55,13 +55,21 @@ describe('useGameState', () => {
     }
   };
 
+  const openSocket = () => {
+    const ws = MockWebSocket.instances[0];
+    if (!ws) return null;
+    act(() => {
+      ws.readyState = WebSocket.OPEN;
+      ws.onopen && ws.onopen(new Event('open'));
+    });
+
+    return ws;
+  };
+
   test('handles GAME_STARTED and GAME_UPDATE payloads', async () => {
     const { result } = renderHook(() => useGameState());
 
-    act(() => {
-      const ws = MockWebSocket.instances[0];
-      ws.onopen && ws.onopen(new Event('open'));
-    });
+    openSocket();
 
     // Seed player identity via ROOM_CREATED
     sendServerMessage({
@@ -86,10 +94,7 @@ describe('useGameState', () => {
   test('handles ROUND_END and ROUND_STARTED payloads', async () => {
     const { result } = renderHook(() => useGameState());
 
-    act(() => {
-      const ws = MockWebSocket.instances[0];
-      ws.onopen && ws.onopen(new Event('open'));
-    });
+    openSocket();
 
     sendServerMessage({
       type: 'ROUND_END',
@@ -118,10 +123,7 @@ describe('useGameState', () => {
   test('derives turn state and player-facing fields from game updates', async () => {
     const { result } = renderHook(() => useGameState());
 
-    act(() => {
-      const ws = MockWebSocket.instances[0];
-      ws.onopen && ws.onopen(new Event('open'));
-    });
+    openSocket();
 
     sendServerMessage({
       type: 'ROOM_CREATED',
@@ -165,10 +167,7 @@ describe('useGameState', () => {
   test('sends play and flip commands to the websocket', () => {
     const { result } = renderHook(() => useGameState());
 
-    act(() => {
-      const ws = MockWebSocket.instances[0];
-      ws.onopen && ws.onopen(new Event('open'));
-    });
+    openSocket();
 
     sendServerMessage({
       type: 'ROOM_CREATED',

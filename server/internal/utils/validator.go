@@ -57,6 +57,10 @@ func GetCardValue(card *models.Card) int {
 // IsValidPlay checks if the cards can be played on the center pile
 // Returns (isValid, reason)
 func IsValidPlay(cardsToPlay []*models.Card, centerPile []*models.Card, afterPickup bool) (bool, string) {
+	if len(cardsToPlay) == 0 {
+		return false, "no cards played"
+	}
+
 	// After pickup, any card can be played
 	if afterPickup {
 		return true, ""
@@ -72,19 +76,8 @@ func IsValidPlay(cardsToPlay []*models.Card, centerPile []*models.Card, afterPic
 		return true, ""
 	}
 
-	// Get the last card in center pile
-	lastCard := centerPile[len(centerPile)-1]
-	lastValue := GetCardValue(lastCard)
-
-	// Get value of cards to play (all should be same value)
-	playValue := GetCardValue(cardsToPlay[0])
-
-	// Valid if equal or lesser
-	if playValue <= lastValue {
-		return true, ""
-	}
-
-	return false, "Card value too high"
+	// Over-value plays are allowed and stay on the pile
+	return true, ""
 }
 
 // DetectSet checks if the last 4 or more cards in the center pile are all the same value
@@ -107,4 +100,24 @@ func DetectSet(centerPile []*models.Card) bool {
 	}
 
 	return count >= 4
+}
+
+// CountTrailingSet returns the size and value of the trailing set of identical cards
+func CountTrailingSet(centerPile []*models.Card) (int, string) {
+	if len(centerPile) == 0 {
+		return 0, ""
+	}
+
+	lastCard := centerPile[len(centerPile)-1]
+	count := 1
+
+	for i := len(centerPile) - 2; i >= 0; i-- {
+		if centerPile[i].Value == lastCard.Value {
+			count++
+		} else {
+			break
+		}
+	}
+
+	return count, lastCard.Value
 }

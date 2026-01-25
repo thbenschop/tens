@@ -41,6 +41,7 @@ func InitializeRound(game *models.Game) {
 
 	// Reset after-pickup state at the start of every round
 	game.AfterPickup = false
+	game.SetLastClearMessage("")
 
 	// Create and shuffle new deck
 	deck := utils.CreateDeck(playerCount)
@@ -65,6 +66,9 @@ func InitializeRound(game *models.Game) {
 
 // PlayCards handles a player playing cards to the center pile
 func PlayCards(game *models.Game, playerID string, cardIDs []string, afterPickup bool) error {
+	// Reset clear message for this action
+	game.SetLastClearMessage("")
+
 	// Find the player
 	var player *models.Player
 	for _, p := range game.Players {
@@ -121,14 +125,6 @@ func PlayCards(game *models.Game, playerID string, cardIDs []string, afterPickup
 	// Validate play is legal
 	valid, reason := utils.IsValidPlay(cardsToPlay, game.CenterPile, effectiveAfterPickup)
 	if !valid {
-		if reason == "Card value too high" {
-			// Over-value play forces pickup instead of failing the turn
-			if err := PickupPile(game, playerID); err != nil {
-				return err
-			}
-			game.AfterPickup = true
-			return nil
-		}
 		return fmt.Errorf("invalid play: %s", reason)
 	}
 
@@ -153,11 +149,18 @@ func PlayCards(game *models.Game, playerID string, cardIDs []string, afterPickup
 		}
 	}
 
+	// Snapshot previous top for over-value resolution
+	var prevTop *models.Card
+	if len(game.CenterPile) > 0 {
+		prevTop = game.CenterPile[len(game.CenterPile)-1]
+	}
+
 	// Add cards to center pile
 	game.CenterPile = append(game.CenterPile, cardsToPlay...)
 
 	// Check for wild tens (clear deck)
 	if len(cardsToPlay) > 0 && cardsToPlay[0].Value == "10" {
+		game.SetLastClearMessage("Cleared by 10!")
 		ClearDeck(game)
 		// Check if player has won after clearing
 		if CheckWinCondition(player) {
@@ -167,7 +170,8 @@ func PlayCards(game *models.Game, playerID string, cardIDs []string, afterPickup
 	}
 
 	// Check for set (4+ same value)
-	if utils.DetectSet(game.CenterPile) {
+	if count, value := utils.CountTrailingSet(game.CenterPile); count >= 4 {
+		game.SetLastClearMessage(formatSetClearMessage(count, value))
 		ClearDeck(game)
 		// Check if player has won after clearing
 		if CheckWinCondition(player) {
@@ -176,9 +180,25 @@ func PlayCards(game *models.Game, playerID string, cardIDs []string, afterPickup
 		return nil
 	}
 
-	// Check if player has won (played all cards)
-	if CheckWinCondition(player) {
-		return nil // Game will handle round end
+	// Resolve over-value pickup: keep only matching value on pile, pick up the rest
+	if prevTop != nil && utils.GetCardValue(cardsToPlay[0]) > utils.GetCardValue(prevTop) {
+		keep := make([]*models.Card, 0)
+		pickup := make([]*models.Card, 0)
+		for _, c := range game.CenterPile {
+			if c.Value == cardsToPlay[0].Value {
+				keep = append(keep, c)
+			} else {
+				pickup = append(pickup, c)
+			}
+		}
+		game.CenterPile = keep
+		player.Hand = append(player.Hand, pickup...)
+		// Over value cards form set after pickup, clear board and allow player to have another turn
+		if count, value := utils.CountTrailingSet(game.CenterPile); count >= 4 {
+			game.SetLastClearMessage(formatSetClearMessage(count, value))
+			ClearDeck(game)
+			return nil
+		}
 	}
 
 	// Normal play - advance to next player
@@ -218,6 +238,9 @@ func PickupPile(game *models.Game, playerID string) error {
 
 // FlipFaceDown reveals a face-down card and attempts to play it
 func FlipFaceDown(game *models.Game, playerID string, cardID string) error {
+	// Reset clear message for this action
+	game.SetLastClearMessage("")
+
 	// Find the player
 	var player *models.Player
 	for _, p := range game.Players {
@@ -237,16 +260,17 @@ func FlipFaceDown(game *models.Game, playerID string, cardID string) error {
 	}
 
 	// Check if player can play face-down cards (hand and table-up must be empty)
-	if len(player.Hand) > 0 || len(player.TableCardsUp) > 0 {
-		return fmt.Errorf("must play all hand and table-up cards first")
+	if len(player.Hand) > 0 {
+		return fmt.Errorf("must play all hand cards first")
 	}
 
 	// Find and remove the face-down card
 	var flippedCard *models.Card
+	var flippedIndex int
 	for i, card := range player.TableCardsDown {
 		if card.ID == cardID {
 			flippedCard = card
-			player.TableCardsDown = append(player.TableCardsDown[:i], player.TableCardsDown[i+1:]...)
+			flippedIndex = i
 			break
 		}
 	}
@@ -254,28 +278,62 @@ func FlipFaceDown(game *models.Game, playerID string, cardID string) error {
 		return fmt.Errorf("face-down card not found")
 	}
 
+	// Enforce paired face-up must be played first (value-based pairing)
+	for _, up := range player.TableCardsUp {
+		if up.Value == flippedCard.Value {
+			return fmt.Errorf("cannot flip face-down card until paired face-up is played")
+		}
+	}
+
+	// Remove the card now that validation passed
+	player.TableCardsDown = append(player.TableCardsDown[:flippedIndex], player.TableCardsDown[flippedIndex+1:]...)
+
 	// Check if card can be played
 	valid, _ := utils.IsValidPlay([]*models.Card{flippedCard}, game.CenterPile, false)
 	if valid {
+		var prevTop *models.Card
+		if len(game.CenterPile) > 0 {
+			prevTop = game.CenterPile[len(game.CenterPile)-1]
+		}
+
 		// Play the card
 		game.CenterPile = append(game.CenterPile, flippedCard)
 
 		// Check for wild tens or sets
 		if flippedCard.Value == "10" {
+			game.SetLastClearMessage("Cleared by 10!")
 			ClearDeck(game)
 			// Check if player has won after clearing
 			if CheckWinCondition(player) {
 				return nil
 			}
-		} else if utils.DetectSet(game.CenterPile) {
+		} else if count, value := utils.CountTrailingSet(game.CenterPile); count >= 4 {
+			game.SetLastClearMessage(formatSetClearMessage(count, value))
 			ClearDeck(game)
 			// Check if player has won after clearing
 			if CheckWinCondition(player) {
 				return nil
 			}
 		} else {
-			// Check if player has won
-			if CheckWinCondition(player) {
+			// Over-value flip pickup: keep matching value, pick others
+			if prevTop != nil && utils.GetCardValue(flippedCard) > utils.GetCardValue(prevTop) {
+				keep := make([]*models.Card, 0)
+				pickup := make([]*models.Card, 0)
+				for _, c := range game.CenterPile {
+					if c.Value == flippedCard.Value {
+						keep = append(keep, c)
+					} else {
+						pickup = append(pickup, c)
+					}
+				}
+				game.CenterPile = keep
+				player.Hand = append(player.Hand, pickup...)
+			}
+
+			// Over value cards form set after pickup, clear board and allow player to have another turn
+			if count, value := utils.CountTrailingSet(game.CenterPile); count >= 4 {
+				game.SetLastClearMessage(formatSetClearMessage(count, value))
+				ClearDeck(game)
 				return nil
 			}
 			// Normal play - advance to next player
@@ -334,4 +392,8 @@ func StartNextRound(game *models.Game) {
 
 	// Set current player to left of dealer (after dealing)
 	game.CurrentPlayerIndex = (game.DealerIndex + 1) % len(game.Players)
+}
+
+func formatSetClearMessage(count int, value string) string {
+	return fmt.Sprintf("Cleared by %d %ss!", count, value)
 }

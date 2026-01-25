@@ -178,7 +178,7 @@ func TestIsValidPlay(t *testing.T) {
 			expectedReason: "",
 		},
 		{
-			name: "King (13) invalid on Jack (11)",
+			name: "King (13) over-value on Jack (11) stays valid",
 			cardsToPlay: []*models.Card{
 				{ID: "1", Suit: "Hearts", Value: "K"},
 			},
@@ -186,8 +186,8 @@ func TestIsValidPlay(t *testing.T) {
 				{ID: "2", Suit: "Diamonds", Value: "J"},
 			},
 			afterPickup:    false,
-			expectedValid:  false,
-			expectedReason: "Card value too high",
+			expectedValid:  true,
+			expectedReason: "",
 		},
 	}
 

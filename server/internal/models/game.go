@@ -13,6 +13,7 @@ type Game struct {
 	DiscardPile        []*Card   `json:"discardPile"`
 	CenterPile         []*Card   `json:"centerPile"`
 	AfterPickup        bool      `json:"afterPickup"`
+	LastClearMessage   string    `json:"lastClearMessage"`
 	CurrentPlayerIndex int       `json:"currentPlayerIndex"`
 	DealerIndex        int       `json:"dealerIndex"`
 	Round              int       `json:"round"`
@@ -30,6 +31,7 @@ func NewGame(id, roomCode string, players []*Player) *Game {
 		Players:            players,
 		DiscardPile:        []*Card{},
 		CenterPile:         []*Card{},
+		LastClearMessage:   "",
 		CurrentPlayerIndex: 0,
 		DealerIndex:        0,
 		Round:              1,
@@ -68,4 +70,18 @@ func (g *Game) Finish() {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	g.IsFinished = true
+}
+
+// GetLastClearMessage exposes the most recent clear message for UI/tests
+func (g *Game) GetLastClearMessage() string {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+	return g.LastClearMessage
+}
+
+// SetLastClearMessage updates the clear message in a threadsafe manner
+func (g *Game) SetLastClearMessage(msg string) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.LastClearMessage = msg
 }

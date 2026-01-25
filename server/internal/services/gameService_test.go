@@ -192,8 +192,8 @@ func TestPlayCards(t *testing.T) {
 			t.Fatalf("PlayCards returned error: %v", err)
 		}
 
-		if len(game.CenterPile) != 3 {
-			t.Fatalf("Center pile has %d cards, expected appended face-up card without pickup", len(game.CenterPile))
+		if len(game.CenterPile) != 1 {
+			t.Fatalf("Center pile has %d cards, expected only over-value run to remain", len(game.CenterPile))
 		}
 		if game.CenterPile[len(game.CenterPile)-1].ID != "up-1" {
 			t.Fatalf("Top card = %s, expected played face-up card", game.CenterPile[len(game.CenterPile)-1].ID)
@@ -204,8 +204,8 @@ func TestPlayCards(t *testing.T) {
 		if len(players[0].TableCardsUp) != 0 {
 			t.Fatalf("TableCardsUp has %d cards, expected played card to be removed", len(players[0].TableCardsUp))
 		}
-		if len(players[0].Hand) != 2 {
-			t.Fatalf("Hand count = %d, expected hand to stay unchanged by face-up play", len(players[0].Hand))
+		if len(players[0].Hand) != 4 {
+			t.Fatalf("Hand count = %d, expected pickup of non-matching pile cards", len(players[0].Hand))
 		}
 		if game.CurrentPlayerIndex != 1 {
 			t.Fatalf("Current player index = %d, expected turn to advance after non-clearing play", game.CurrentPlayerIndex)
@@ -432,11 +432,11 @@ func TestPlayCards(t *testing.T) {
 			t.Fatalf("PlayCards returned error: %v", err)
 		}
 
-		if len(game.CenterPile) != 3 {
-			t.Fatalf("Center pile has %d cards, expected 3 after over-value play stays", len(game.CenterPile))
+		if len(game.CenterPile) != 1 {
+			t.Fatalf("Center pile has %d cards, expected only over-value value to remain", len(game.CenterPile))
 		}
-		if len(players[0].Hand) != 0 {
-			t.Fatalf("Player hand has %d cards, expected over-value play to leave hand empty", len(players[0].Hand))
+		if len(players[0].Hand) != 2 {
+			t.Fatalf("Player hand has %d cards, expected pickup of non-matching pile cards", len(players[0].Hand))
 		}
 		if game.CurrentPlayerIndex != 1 {
 			t.Fatalf("Current player index is %d, expected turn to advance to next player", game.CurrentPlayerIndex)
@@ -771,7 +771,7 @@ func TestFlipFaceDown(t *testing.T) {
 		}
 	})
 
-	t.Run("Invalid flip picks up pile", func(t *testing.T) {
+	t.Run("Over-value flip stays on pile", func(t *testing.T) {
 		players := []*models.Player{
 			{
 				ID:             "player-1",
@@ -795,14 +795,17 @@ func TestFlipFaceDown(t *testing.T) {
 		}
 
 		player := game.Players[0]
-		if len(player.Hand) != 2 {
-			t.Errorf("Player hand has %d cards, expected 2 after invalid flip", len(player.Hand))
+		if len(player.Hand) != 1 {
+			t.Errorf("Player hand has %d cards, expected pickup of non-matching pile cards", len(player.Hand))
 		}
-		if len(game.CenterPile) != 0 {
-			t.Errorf("Center pile has %d cards, expected 0", len(game.CenterPile))
+		if len(game.CenterPile) != 1 {
+			t.Errorf("Center pile has %d cards, expected only flipped value to remain", len(game.CenterPile))
 		}
-		if game.CurrentPlayerIndex != 0 {
-			t.Error("Expected turn to stay with player after invalid flip")
+		if game.CenterPile[0].ID != "fd-3" {
+			t.Fatalf("Top card = %s, expected flipped card to land on pile", game.CenterPile[0].ID)
+		}
+		if game.CurrentPlayerIndex != 1 {
+			t.Errorf("Current player index is %d, expected turn to advance after over-value flip", game.CurrentPlayerIndex)
 		}
 	})
 

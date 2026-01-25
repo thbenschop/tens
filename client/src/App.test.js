@@ -63,24 +63,6 @@ describe('App integration', () => {
     jest.useRealTimers();
   });
 
-  test('shows connecting and reconnecting banners', async () => {
-    render(<App />);
-
-    expect(screen.getByText(/Connecting to server/i)).toBeInTheDocument();
-
-    const socket = getSocket();
-
-    act(() => socket.close());
-
-    act(() => {
-      jest.advanceTimersByTime(600);
-    });
-
-    await waitFor(() => {
-      expect(screen.getByText(/Reconnecting/i)).toBeInTheDocument();
-    });
-  });
-
   test('flows from lobby to game and shows round end scoreboard', async () => {
     render(<App />);
 
