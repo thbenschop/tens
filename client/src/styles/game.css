@@ -31,6 +31,61 @@
   flex-wrap: wrap;
 }
 
+.table-section-stacked {
+  width: 100%;
+}
+
+.table-row-stacked {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
+}
+
+.table-slot {
+  position: relative;
+  flex: 0 0 auto;
+  width: calc(var(--card-width, 4rem) + var(--card-stack-overlap-x, 0.35rem));
+  min-height: calc(var(--card-height, 5.6rem) + 0.4rem);
+}
+
+.card-stack {
+  position: relative;
+  width: var(--card-width, 4rem);
+  min-height: var(--card-height, 5.6rem);
+}
+
+.card-stack-back {
+  position: relative;
+  z-index: 1;
+}
+
+.card-stack-front {
+  position: absolute;
+  top: var(--card-stack-overlap-y, -0.3rem);
+  left: var(--card-stack-overlap-x, 0.35rem);
+  z-index: 2;
+}
+
+.card-stack-front .playing-card {
+  transform: translateY(-1px);
+}
+
+@media (max-width: 640px) {
+  .table-row-stacked {
+    gap: 0.6rem;
+  }
+
+  .table-slot {
+    width: calc(var(--card-width) + 0.25rem);
+  }
+
+  .card-stack-front {
+    top: calc(var(--card-stack-overlap-y, -0.3rem) / 1.4);
+    left: calc(var(--card-stack-overlap-x, 0.35rem) / 1.4);
+  }
+}
+
 .center-pile {
   position: relative;
   min-height: 6rem;

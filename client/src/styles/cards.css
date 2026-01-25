@@ -1,3 +1,10 @@
+:root {
+  --card-width: 4rem;
+  --card-height: 5.6rem;
+  --card-stack-overlap-x: 0.35rem;
+  --card-stack-overlap-y: -0.3rem;
+}
+
 .card-selector {
   display: flex;
   gap: 0.5rem;
@@ -6,8 +13,8 @@
 }
 
 .playing-card {
-  width: 4rem;
-  height: 5.6rem;
+  width: var(--card-width);
+  height: var(--card-height);
   border-radius: 0.5rem;
   border: 1px solid #d4d4d8;
   background: #ffffff;
@@ -77,6 +84,14 @@
 
 .card-up.text-black .card-face {
   color: #111827;
+}
+
+.card-stack-back .playing-card {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.14);
+}
+
+.card-stack-front .playing-card {
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.2);
 }
 
 .playing-card.card-placeholder {

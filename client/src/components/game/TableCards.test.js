@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import TableCards from './TableCards';
 import { SUITS } from '../../utils/constants';
@@ -34,6 +34,35 @@ describe('TableCards', () => {
     downCards.forEach((card) => {
       expect(card).toHaveTextContent(/back/i);
     });
+  });
+
+  it('pairs face-up and face-down cards in the same overlap slot for each index', () => {
+    render(<TableCards cardsUp={cardsUp} cardsDown={cardsDown} />);
+
+    const slots = screen.getAllByTestId('table-slot');
+    expect(slots).toHaveLength(cardsDown.length);
+
+    const firstSlot = slots[0];
+    const slotDown = within(firstSlot).getByTestId('table-card-down');
+    const slotUp = within(firstSlot).getByTestId('table-card-up');
+
+    expect(slotDown).toBeInTheDocument();
+    expect(slotUp).toBeInTheDocument();
+
+    const stack = firstSlot.querySelector('.card-stack');
+    expect(stack).not.toBeNull();
+    expect(firstSlot.querySelector('.card-stack-back')).toContainElement(slotDown);
+    expect(firstSlot.querySelector('.card-stack-front')).toContainElement(slotUp);
+  });
+
+  it('keeps a face-up card anchored to its matching slot index, leaving earlier empty slots untouched', () => {
+    render(<TableCards cardsUp={[null, cardsUp[1]]} cardsDown={cardsDown} />);
+
+    const slots = screen.getAllByTestId('table-slot');
+    expect(within(slots[0]).queryByTestId('table-card-up')).toBeNull();
+
+    const slotOneUp = within(slots[1]).getByTestId('table-card-up');
+    expect(slotOneUp).toHaveTextContent('3♣');
   });
 
   it('keeps a face-down card inert while its paired face-up exists', () => {
