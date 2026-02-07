@@ -58,9 +58,22 @@ describe('App integration', () => {
     act(() => {
       MockWebSocket.instances.forEach((ws) => ws.close());
     });
-    jest.runOnlyPendingTimers();
+    act(() => {
+      jest.runOnlyPendingTimers();
+    });
     global.WebSocket = realWebSocket;
     jest.useRealTimers();
+  });
+
+  test('keeps status light and helper text without showing a connection banner', async () => {
+    render(<App />);
+
+    expect(screen.getByText(/Clear the Deck/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Connecting$/i)).toBeInTheDocument();
+    expect(screen.getByText(/Connecting to server/i)).toBeInTheDocument();
+    expect(
+      screen.queryByRole('status', { name: /Connecting to server/i })
+    ).not.toBeInTheDocument();
   });
 
   test('flows from lobby to game and shows round end scoreboard', async () => {
@@ -108,7 +121,7 @@ describe('App integration', () => {
     expect(screen.getByText(/Alice wins the round/i)).toBeInTheDocument();
   });
 
-  test('renders server error payload', async () => {
+  test('does not render a global error alert for server errors', async () => {
     render(<App />);
 
     act(() => {
@@ -117,7 +130,10 @@ describe('App integration', () => {
 
     sendServer({ type: 'ERROR', message: 'Bad request' });
 
-    await waitFor(() => expect(screen.getByText(/Bad request/)).toBeInTheDocument());
+    await waitFor(() => {
+      expect(screen.queryByText(/Bad request/)).not.toBeInTheDocument();
+    });
+    expect(screen.queryByRole('button', { name: /×/i })).not.toBeInTheDocument();
   });
 });
 

@@ -17,7 +17,6 @@ function GameBoard({ state }) {
     hand = [],
     isPlayerTurn = false,
     currentTurnPlayerId,
-    canFlip = false,
     roundResult,
     error,
     isHost,
@@ -28,6 +27,7 @@ function GameBoard({ state }) {
 
   const [selectedHandCards, setSelectedHandCards] = useState([]);
   const [selectedTableCards, setSelectedTableCards] = useState([]);
+  const [selectedFaceDownId, setSelectedFaceDownId] = useState(null);
   const safeStartNextRound = startNextRound || (() => {});
 
   const combinedSelectedCards = useMemo(() => {
@@ -46,14 +46,17 @@ function GameBoard({ state }) {
 
   const handleHandSelectionChange = (cards) => {
     setSelectedHandCards(cards);
+    setSelectedFaceDownId(null);
   };
 
   const handleTableSelectionChange = (cards) => {
     setSelectedTableCards(cards);
+    setSelectedFaceDownId(null);
   };
 
   const handlePlaySelected = () => {
     if (!isPlayerTurn || combinedSelectedCards.length === 0) return;
+    setSelectedFaceDownId(null);
     if (sendPlayCards) {
       sendPlayCards(combinedSelectedCards);
     }
@@ -62,6 +65,7 @@ function GameBoard({ state }) {
   const handlePlayFromHand = (cards) => {
     setSelectedHandCards(cards);
     setSelectedTableCards([]);
+    setSelectedFaceDownId(null);
     if (!isPlayerTurn || cards.length === 0) return;
     if (sendPlayCards) {
       sendPlayCards(cards);
@@ -71,6 +75,7 @@ function GameBoard({ state }) {
   const handlePlayFromTable = (cards) => {
     setSelectedTableCards(cards);
     setSelectedHandCards([]);
+    setSelectedFaceDownId(null);
     if (!isPlayerTurn || cards.length === 0) return;
     if (sendPlayCards) {
       sendPlayCards(cards);
@@ -78,22 +83,25 @@ function GameBoard({ state }) {
   };
 
   const handleFaceDownSelection = (card) => {
-    if (!isPlayerTurn || !canFlip || !card?.id) return;
-    if (flipFaceDown) {
-      flipFaceDown(card.id);
-    }
+    if (!isPlayerTurn || !card?.id) return;
+    setSelectedFaceDownId(card.id);
   };
 
   const handleFlip = () => {
-    if (!isPlayerTurn || !canFlip || tableCardsDown.length === 0) return;
+    if (!isPlayerTurn || tableCardsDown.length === 0) return;
+    const targetId =
+      selectedFaceDownId && tableCardsDown.some((c) => c?.id === selectedFaceDownId)
+        ? selectedFaceDownId
+        : tableCardsDown[0].id;
+    setSelectedFaceDownId(null);
     if (flipFaceDown) {
-      flipFaceDown(tableCardsDown[0].id);
+      flipFaceDown(targetId);
     }
   };
 
   const turnText = isPlayerTurn ? 'Your turn' : 'Waiting for other players';
   const playDisabled = !isPlayerTurn || combinedSelectedCards.length === 0;
-  const flipDisabled = !isPlayerTurn || !canFlip || tableCardsDown.length === 0;
+  const flipDisabled = !isPlayerTurn || tableCardsDown.length === 0;
 
   return (
     <div className="min-h-screen bg-gray-100 py-6 px-4">
@@ -177,7 +185,8 @@ function GameBoard({ state }) {
                 cardsDown={tableCardsDown}
                 onFaceUpSelectionChange={handleTableSelectionChange}
                 onPlayFaceUp={handlePlayFromTable}
-                onFlipFaceDown={handleFaceDownSelection}
+                onFaceDownSelect={handleFaceDownSelection}
+                selectedFaceDownId={selectedFaceDownId}
               />
             </div>
 

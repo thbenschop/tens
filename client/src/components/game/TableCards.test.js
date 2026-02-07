@@ -65,11 +65,11 @@ describe('TableCards', () => {
     expect(slotOneUp).toHaveTextContent('3♣');
   });
 
-  it('keeps a face-down card inert while its paired face-up exists', () => {
-    const onFlipFaceDown = jest.fn();
+  it('keeps a face-down card inert while its paired face-up exists and only selects eligible slots', () => {
+    const onFaceDownSelect = jest.fn();
 
     render(
-      <TableCards cardsUp={[cardsUp[0]]} cardsDown={cardsDown} onFlipFaceDown={onFlipFaceDown} />
+      <TableCards cardsUp={[cardsUp[0]]} cardsDown={cardsDown} onFaceDownSelect={onFaceDownSelect} />
     );
 
     const downCards = screen.getAllByTestId('table-card-down');
@@ -78,24 +78,24 @@ describe('TableCards', () => {
     act(() => {
       jest.runOnlyPendingTimers();
     });
-    expect(onFlipFaceDown).not.toHaveBeenCalled();
+    expect(onFaceDownSelect).not.toHaveBeenCalled();
 
     fireEvent.click(downCards[1]);
     act(() => {
       jest.runOnlyPendingTimers();
     });
-    expect(onFlipFaceDown).toHaveBeenCalledTimes(1);
-    expect(onFlipFaceDown).toHaveBeenCalledWith(cardsDown[1]);
+    expect(onFaceDownSelect).toHaveBeenCalledTimes(1);
+    expect(onFaceDownSelect).toHaveBeenCalledWith(cardsDown[1], 1);
   });
 
   it('allows selecting a face-down card once its face-up partner is cleared and leaves other slots inert', () => {
-    const onFlipFaceDown = jest.fn();
+    const onFaceDownSelect = jest.fn();
 
     const { rerender } = render(
       <TableCards
         cardsUp={[cardsUp[0], cardsUp[1]]}
         cardsDown={cardsDown}
-        onFlipFaceDown={onFlipFaceDown}
+        onFaceDownSelect={onFaceDownSelect}
       />
     );
 
@@ -105,13 +105,13 @@ describe('TableCards', () => {
     act(() => {
       jest.runOnlyPendingTimers();
     });
-    expect(onFlipFaceDown).not.toHaveBeenCalled();
+    expect(onFaceDownSelect).not.toHaveBeenCalled();
 
     rerender(
       <TableCards
         cardsUp={[null, cardsUp[1]]}
         cardsDown={cardsDown}
-        onFlipFaceDown={onFlipFaceDown}
+        onFaceDownSelect={onFaceDownSelect}
       />
     );
 
@@ -121,13 +121,13 @@ describe('TableCards', () => {
     act(() => {
       jest.runOnlyPendingTimers();
     });
-    expect(onFlipFaceDown).toHaveBeenCalledTimes(1);
-    expect(onFlipFaceDown).toHaveBeenCalledWith(cardsDown[0]);
+    expect(onFaceDownSelect).toHaveBeenCalledTimes(1);
+    expect(onFaceDownSelect).toHaveBeenCalledWith(cardsDown[0], 0);
 
     fireEvent.click(updatedDownCards[1]);
     act(() => {
       jest.runOnlyPendingTimers();
     });
-    expect(onFlipFaceDown).toHaveBeenCalledTimes(1);
+    expect(onFaceDownSelect).toHaveBeenCalledTimes(1);
   });
 });

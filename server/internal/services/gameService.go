@@ -259,11 +259,6 @@ func FlipFaceDown(game *models.Game, playerID string, cardID string) error {
 		return fmt.Errorf("not your turn")
 	}
 
-	// Check if player can play face-down cards (hand and table-up must be empty)
-	if len(player.Hand) > 0 {
-		return fmt.Errorf("must play all hand cards first")
-	}
-
 	// Find and remove the face-down card
 	var flippedCard *models.Card
 	var flippedIndex int
@@ -278,10 +273,10 @@ func FlipFaceDown(game *models.Game, playerID string, cardID string) error {
 		return fmt.Errorf("face-down card not found")
 	}
 
-	// Enforce paired face-up must be played first (value-based pairing)
-	for _, up := range player.TableCardsUp {
-		if up.Value == flippedCard.Value {
-			return fmt.Errorf("cannot flip face-down card until paired face-up is played")
+	// Enforce paired face-up (same slot index) must be played first
+	if flippedIndex < len(player.TableCardsUp) {
+		if partner := player.TableCardsUp[flippedIndex]; partner != nil {
+			return fmt.Errorf("cannot flip face-down card until paired face-up is played") // TODO this error is showing up unexpectedly, probably need to link the face up/down cards to avoid client/server mismatch in ordering. Or we remove cards from the array, reducing size
 		}
 	}
 

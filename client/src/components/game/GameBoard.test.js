@@ -114,62 +114,33 @@ describe('GameBoard', () => {
     ]);
   });
 
-  it('disables flip button when flipping is not allowed', () => {
-    renderBoard({ canFlip: false });
+  it('enables flip button when player has face-down cards, regardless of canFlip flag', () => {
+    renderBoard({ canFlip: false, tableCardsDown: [makeCard('d1')] });
 
     const flipButton = screen.getByRole('button', { name: /Flip Face-Down/i });
-    expect(flipButton).toBeDisabled();
+    expect(flipButton).toBeEnabled();
   });
 
-  it('triggers flip action for the top face-down card when allowed', () => {
-    renderBoard({ canFlip: true, tableCardsDown: [makeCard('d1'), makeCard('d2')] });
+  it('triggers flip action for the selected face-down card, falling back to first when none selected', () => {
+    renderBoard({ tableCardsDown: [makeCard('d1'), makeCard('d2')], tableCardsUp: [null, null] });
+
+    const downCards = screen.getAllByTestId('table-card-down');
+
+    act(() => {
+      fireEvent.click(downCards[1]);
+      jest.runAllTimers();
+    });
 
     const flipButton = screen.getByRole('button', { name: /Flip Face-Down/i });
     fireEvent.click(flipButton);
 
     expect(mockFlipFaceDown).toHaveBeenCalledTimes(1);
-    expect(mockFlipFaceDown).toHaveBeenCalledWith('d1');
+    expect(mockFlipFaceDown).toHaveBeenCalledWith('d2');
   });
 
-  it('flips a face-down card when its paired face-up slot is empty', () => {
+  it('does not flip when selecting a face-down card whose paired face-up is present, but flip button can still flip an eligible one', () => {
     renderBoard({
-      canFlip: true,
-      tableCardsUp: [null],
-      tableCardsDown: [makeCard('d1')],
-    });
-
-    const downCard = screen.getByTestId('table-card-down');
-
-    act(() => {
-      fireEvent.click(downCard);
-      jest.runAllTimers();
-    });
-
-    expect(mockFlipFaceDown).toHaveBeenCalledTimes(1);
-    expect(mockFlipFaceDown).toHaveBeenCalledWith('d1');
-  });
-
-  it('blocks flipping a face-down card when its paired face-up card still exists', () => {
-    renderBoard({
-      canFlip: true,
-      tableCardsUp: [makeCard('u1')],
-      tableCardsDown: [makeCard('d1')],
-    });
-
-    const downCard = screen.getByTestId('table-card-down');
-
-    act(() => {
-      fireEvent.click(downCard);
-      jest.runAllTimers();
-    });
-
-    expect(mockFlipFaceDown).not.toHaveBeenCalled();
-  });
-
-  it('allows selecting an extra face-down card without a matching face-up slot', () => {
-    renderBoard({
-      canFlip: true,
-      tableCardsUp: [makeCard('u1')],
+      tableCardsUp: [makeCard('u1'), null],
       tableCardsDown: [makeCard('d1'), makeCard('d2')],
     });
 
@@ -181,10 +152,8 @@ describe('GameBoard', () => {
     });
     expect(mockFlipFaceDown).not.toHaveBeenCalled();
 
-    act(() => {
-      fireEvent.click(downCards[1]);
-      jest.runAllTimers();
-    });
+    const flipButton = screen.getByRole('button', { name: /Flip Face-Down/i });
+    fireEvent.click(flipButton);
 
     expect(mockFlipFaceDown).toHaveBeenCalledTimes(1);
     expect(mockFlipFaceDown).toHaveBeenCalledWith('d2');

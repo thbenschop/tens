@@ -18,12 +18,10 @@ function App() {
     isConnected,
     isConnecting,
     connectionAttempts,
-    wsError,
     createRoom,
     joinRoom,
     leaveRoom,
     startGame,
-    clearError,
   } = gameState;
 
   const handleCreateRoom = (playerName) => {
@@ -59,26 +57,9 @@ function App() {
       ? 'bg-yellow-400'
       : 'bg-red-400';
 
-  const renderConnectionBanner = () => {
-    if (isConnected) return null;
-
-    const message = connectionAttempts > 1
-      ? 'Reconnecting to server...'
-      : 'Connecting to server...';
-
-    return (
-      <div className="max-w-4xl mx-auto mb-4">
-        <div className="bg-yellow-50 border border-yellow-300 text-yellow-800 px-4 py-3 rounded shadow-sm" role="status">
-          {message}
-        </div>
-      </div>
-    );
-  };
-
   if (gameStarted) {
     return (
       <div className="min-h-screen bg-gray-100 py-4 px-4">
-        {renderConnectionBanner()}
         <GameBoard state={gameState} />
       </div>
     );
@@ -87,7 +68,6 @@ function App() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600 py-8 px-4">
       <div className="max-w-4xl mx-auto">
-        {renderConnectionBanner()}
         <header className="text-center mb-8">
           <h1 className="text-5xl font-bold text-white mb-2 drop-shadow-lg">
             Clear the Deck
@@ -100,19 +80,6 @@ function App() {
             />
             <span className="text-sm">{connectionStatusText}</span>
           </div>
-          {(error || wsError) && (
-            <div className="mt-3 max-w-md mx-auto">
-              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
-                {error || wsError?.message}
-                <button
-                  onClick={clearError}
-                  className="absolute top-0 right-0 px-3 py-2"
-                >
-                  ×
-                </button>
-              </div>
-            </div>
-          )}
         </header>
 
         {view === 'lobby' && room ? (

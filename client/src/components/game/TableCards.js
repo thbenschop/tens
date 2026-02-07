@@ -9,7 +9,8 @@ function TableCards({
   cardsDown = [],
   onFaceUpSelectionChange,
   onPlayFaceUp,
-  onFlipFaceDown,
+  onFaceDownSelect,
+  selectedFaceDownId,
 }) {
   const [selectedFaceUpIds, setSelectedFaceUpIds] = useState([]);
 
@@ -80,8 +81,7 @@ function TableCards({
             const faceDownHandlers = hasFaceUpPair
               ? {}
               : {
-                  onSelect: onFlipFaceDown,
-                  onPlay: onFlipFaceDown,
+                  onSelect: () => onFaceDownSelect?.(slot.down, index),
                 };
 
             return (
@@ -92,6 +92,7 @@ function TableCards({
                       <Card
                         card={slot.down}
                         faceDown
+                        selected={selectedFaceDownId === slot.down.id}
                         dataTestId="table-card-down"
                         {...faceDownHandlers}
                       />
@@ -136,7 +137,8 @@ TableCards.propTypes = {
   ),
   onFaceUpSelectionChange: PropTypes.func,
   onPlayFaceUp: PropTypes.func,
-  onFlipFaceDown: PropTypes.func,
+  onFaceDownSelect: PropTypes.func,
+  selectedFaceDownId: PropTypes.string,
 };
 
 export default TableCards;
