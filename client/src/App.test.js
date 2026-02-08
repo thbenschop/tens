@@ -24,6 +24,11 @@ class MockWebSocket {
     this.onclose && this.onclose(new Event('close'));
   }
 
+  error() {
+    this.readyState = WebSocket.CLOSED;
+    this.onerror && this.onerror(new Event('error'));
+  }
+
   emitMessage(data) {
     const event = new MessageEvent('message', { data: JSON.stringify(data) });
     this.onmessage && this.onmessage(event);
@@ -62,18 +67,49 @@ describe('App integration', () => {
       jest.runOnlyPendingTimers();
     });
     global.WebSocket = realWebSocket;
+    jest.restoreAllMocks();
     jest.useRealTimers();
   });
 
-  test('keeps status light and helper text without showing a connection banner', async () => {
+  test('keeps status light and helper text without showing connection banner text', async () => {
     render(<App />);
 
+    const statusLight = screen.getByTestId('connection-status');
+
     expect(screen.getByText(/Clear the Deck/i)).toBeInTheDocument();
-    expect(screen.getByText(/^Connecting$/i)).toBeInTheDocument();
+    expect(statusLight).toHaveAttribute('aria-label', expect.stringMatching(/Connecting/i));
+    expect(screen.queryByText(/^Connecting$/i)).not.toBeInTheDocument();
     expect(screen.getByText(/Connecting to server/i)).toBeInTheDocument();
     expect(
       screen.queryByRole('status', { name: /Connecting to server/i })
     ).not.toBeInTheDocument();
+  });
+
+  test('relies on the status light instead of alerts when socket errors occur', async () => {
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    render(<App />);
+
+    act(() => {
+      getSocket().error();
+    });
+
+    act(() => {
+      jest.advanceTimersByTime(600);
+    });
+
+    const statusLight = screen.getByTestId('connection-status');
+
+    await waitFor(() => {
+      expect(statusLight.getAttribute('aria-label')).toMatch(/Reconnecting/i);
+    });
+
+    expect(screen.queryByText(/^Reconnecting$/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/Reconnecting to server/i)).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(consoleErrorSpy).toHaveBeenCalled();
+
+    consoleErrorSpy.mockRestore();
   });
 
   test('flows from lobby to game and shows round end scoreboard', async () => {

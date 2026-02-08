@@ -51,6 +51,8 @@ function App() {
         ? 'Connecting'
         : 'Disconnected';
 
+  const connectionStatusLabel = `Connection status: ${connectionStatusText}`;
+
   const connectionDotClass = isConnected
     ? 'bg-green-400'
     : connectionAttempts > 1
@@ -72,13 +74,17 @@ function App() {
           <h1 className="text-5xl font-bold text-white mb-2 drop-shadow-lg">
             Clear the Deck
           </h1>
-          <div className="flex items-center justify-center gap-2 text-white">
+          <div
+            className="flex items-center justify-center gap-2 text-white"
+            data-testid="connection-status"
+            aria-label={connectionStatusLabel}
+          >
             <div
               className={`w-3 h-3 rounded-full ${
                 connectionDotClass
               }`}
+              aria-hidden="true"
             />
-            <span className="text-sm">{connectionStatusText}</span>
           </div>
         </header>
 

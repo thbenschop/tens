@@ -99,6 +99,7 @@ function useGameState() {
         break;
 
       case 'ERROR':
+        console.error('Server error received:', data.message);
         setGameState((prev) => ({
           ...prev,
           error: data.message,
@@ -127,10 +128,7 @@ function useGameState() {
 
   useEffect(() => {
     if (wsError) {
-      setGameState((prev) => ({
-        ...prev,
-        error: wsError.message || 'WebSocket connection error',
-      }));
+      console.error('WebSocket error encountered', wsError);
     }
   }, [wsError]);
 

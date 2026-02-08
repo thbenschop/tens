@@ -33,6 +33,7 @@ function useWebSocket(url, options = {}) {
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
+      reconnectScheduledRef.current = false;
     }
   };
 
@@ -42,6 +43,8 @@ function useWebSocket(url, options = {}) {
     shouldReconnectRef.current = true;
 
     const connect = () => {
+      // If we reached here via a scheduled reconnect, mark the timer as consumed
+      reconnectScheduledRef.current = false;
       setIsConnecting(true);
       setConnectionAttempts((prev) => prev + 1);
 
@@ -71,7 +74,6 @@ function useWebSocket(url, options = {}) {
       };
 
       ws.onclose = (event) => {
-        reconnectScheduledRef.current = false;
         setIsConnected(false);
         const handler = handlersRef.current.onClose;
         if (handler) handler(event);
@@ -79,6 +81,7 @@ function useWebSocket(url, options = {}) {
       };
 
       ws.onerror = (event) => {
+        console.error('WebSocket connection error', event);
         setError(new Error('WebSocket connection error'));
         setIsConnected(false);
         const handler = handlersRef.current.onError;

@@ -98,6 +98,55 @@ describe('useWebSocket', () => {
     expect(MockWebSocket.instances[1].readyState).toBe(WebSocket.CONNECTING);
   });
 
+  test('does not double schedule reconnect when error is followed by close', () => {
+    renderHook(() => useWebSocket('ws://localhost:8080/ws'));
+
+    const first = MockWebSocket.instances[0];
+
+    act(() => {
+      first.error();
+      first.close();
+    });
+
+    expect(MockWebSocket.instances).toHaveLength(1);
+
+    advance(600);
+
+    expect(MockWebSocket.instances).toHaveLength(2);
+
+    advance(5000);
+
+    expect(MockWebSocket.instances).toHaveLength(2);
+  });
+
+  test('logs websocket errors, exposes error state, and clears it after reconnect', () => {
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    const { result } = renderHook(() => useWebSocket('ws://localhost:8080/ws'));
+
+    const first = MockWebSocket.instances[0];
+    act(() => {
+      first.error();
+    });
+
+    expect(result.current.error).toEqual(expect.objectContaining({ message: 'WebSocket connection error' }));
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      expect.stringContaining('WebSocket connection error'),
+      expect.any(Event)
+    );
+
+    advance(600);
+
+    const second = MockWebSocket.instances[1];
+    act(() => {
+      second.open();
+    });
+
+    expect(result.current.error).toBeNull();
+
+    consoleErrorSpy.mockRestore();
+  });
+
   test('retries with backoff and can send after reconnect', () => {
     const { result } = renderHook(() => useWebSocket('ws://localhost:8080/ws'));
 

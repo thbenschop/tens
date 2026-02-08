@@ -1,4 +1,10 @@
 {
     "python-envs.defaultEnvManager": "ms-python.python:system",
-    "python-envs.pythonProjects": []
+    "python-envs.pythonProjects": [],
+    "chat.tools.terminal.autoApprove": {
+        "/^Set-Location \"c:/Users/thben/dev/tens/client\"; npm test -- App\\.test\\.js --watch=false --runInBand$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
 }
